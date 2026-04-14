@@ -741,8 +741,7 @@ async function loadOverview() {
     </div>
   `;
 
-  document.getElementById('overview-test-auc').innerHTML = ov.test_auc ? (ov.test_auc * 100).toFixed(2) + '%' : '—';
-
+  
   document.getElementById('overview-summary').innerHTML = `
     <div style="font-size:12px; font-weight:800; color:var(--gray-500); margin-bottom:16px; text-transform:uppercase; letter-spacing:0.1em; border-bottom:1px solid var(--border); padding-bottom:8px">Cơ cấu Khách hàng</div>
     <div style="display:flex; flex-direction:column; gap:14px">
