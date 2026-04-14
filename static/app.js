@@ -704,12 +704,12 @@ async function loadOverview() {
   `;
 
   const tf = ovRes.top_features || ['risk_score', 'monthly_ir', 'engagement_score'];
-  const importanceNote = { 'risk_score': '(Engineered feature)', 'monthly_ir': '', 'engagement_score': '' };
+  const importanceNote = { 'risk_score': '(Siêu biến Nghiệp vụ)', 'monthly_ir': '', 'engagement_score': '' };
   document.getElementById('top-features').innerHTML = tf.map((f, i) =>
-    `<div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px">
+    `<div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px" title="${f === 'risk_score' ? 'Biến tổng hợp đo lường hệ số rủi ro tín dụng ròng từ Core Banking' : ''}">
       <span style="background:var(--blue-50); width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:12px; font-weight:800; color:var(--blue-700); border:1px solid var(--blue-100); flex-shrink:0">${i+1}</span>
       <span style="font-weight:600; color:var(--gray-800); flex:1">${FEATURE_LABELS[f] || f}</span>
-      ${importanceNote[f] ? `<span style="font-size:11px; background:var(--gray-100); padding:2px 6px; border-radius:4px; color:var(--gray-500)">${importanceNote[f]}</span>` : ''}
+      ${importanceNote[f] ? `<span style="font-size:11px; background:var(--emerald-50); padding:3px 8px; border-radius:12px; color:var(--emerald-700); border:1px solid var(--emerald-200); font-weight:600; cursor:help">${importanceNote[f]}</span>` : ''}
     </div>`
   ).join('') || '—';
 
