@@ -1399,7 +1399,7 @@ async function loadModels() {
   if (featImp.combined) {
     const entries = Object.entries(featImp.combined).sort((a, b) => b[1] - a[1]).slice(0, 8);
     const labels = entries.map(e => cleanFeatureName(e[0]));
-    barChart('chart-feat-imp', labels, entries.map(e => e[1]), 'Tầm quan trọng (%)');
+    barChart('chart-feat-imp', labels, entries.map(e => e[1] * 100), 'Tầm quan trọng (%)');
   }
   
   const fiIns = document.getElementById('insight-feat-imp');
