@@ -1167,8 +1167,69 @@ async function loadModels() {
       `;
     }).join('');
   }
+  // CV AUC Insight Box — giải thích ý nghĩa ±Std cho Hội đồng
+  const cvInsightBox = document.getElementById('cv-auc-insight-box');
+  if (cvInsightBox && comparison.table && comparison.table.length > 0) {
+    const tbl = comparison.table;
+    const sortedByStd = [...tbl].filter(r => r.cv_std != null).sort((a, b) => a.cv_std - b.cv_std);
+    const mostStable = sortedByStd[0];
+    const leastStable = sortedByStd[sortedByStd.length - 1];
+    const sortedByCvAuc = [...tbl].filter(r => r.cv_auc != null).sort((a, b) => b.cv_auc - a.cv_auc);
+    const bestCvAuc = sortedByCvAuc[0];
 
-  // 0. CV Folds Stability Chart (Floating Bar / Error Range)
+    const rows = tbl.map(r => {
+      const auc = r.cv_auc ? (r.cv_auc * 100).toFixed(2) + '%' : '—';
+      const std = r.cv_std ? (r.cv_std * 100).toFixed(2) + '%' : '—';
+      const stability = r.cv_std < 0.01 ? '🟢 Rất ổn định' : r.cv_std < 0.02 ? '🟡 Ổn định' : '🔴 Biến động';
+      return `<tr style="border-top:1px solid #bfdbfe">
+        <td style="padding:7px 12px;font-weight:700">${r.model}</td>
+        <td style="padding:7px 12px;text-align:center"><strong>${auc}</strong></td>
+        <td style="padding:7px 12px;text-align:center;color:#64748b">±${std}</td>
+        <td style="padding:7px 12px;text-align:center;font-size:12px">${stability}</td>
+      </tr>`;
+    }).join('');
+
+    cvInsightBox.innerHTML = `
+      <div style="font-weight:800;font-size:15px;margin-bottom:12px;color:#1e3a8a">
+        📘 Giải thích cột CV AUC (±Std) — Đánh giá Độ bền Mô hình
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:#fff;border-radius:8px;padding:10px 14px;border:1px solid #bfdbfe">
+          <div style="font-size:11px;color:#3b82f6;text-transform:uppercase;font-weight:700;margin-bottom:4px">CV AUC (Trung bình)</div>
+          <div style="font-size:13px;color:#1e40af;line-height:1.6">
+            Trung bình AUC qua <strong>5 lần chia dữ liệu khác nhau</strong> (5-Fold Cross-Validation). 
+            Giá trị càng cao → mô hình càng phân biệt đúng Churn/Không Churn khi gặp dữ liệu mới.
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:10px 14px;border:1px solid #bfdbfe">
+          <div style="font-size:11px;color:#3b82f6;text-transform:uppercase;font-weight:700;margin-bottom:4px">±Std (Độ lệch chuẩn)</div>
+          <div style="font-size:13px;color:#1e40af;line-height:1.6">
+            Mức dao động AUC giữa 5 lần fold. <strong>Std nhỏ = mô hình ổn định</strong>, ít bị ảnh hưởng bởi dữ liệu ngẫu nhiên → giảm nguy cơ Overfitting.
+          </div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #bfdbfe;font-size:13px;margin-bottom:12px">
+        <thead style="background:#1e40af;color:#fff">
+          <tr>
+            <th style="padding:8px 12px;text-align:left">Mô hình</th>
+            <th style="padding:8px 12px;text-align:center">CV AUC TB</th>
+            <th style="padding:8px 12px;text-align:center">Độ lệch chuẩn</th>
+            <th style="padding:8px 12px;text-align:center">Độ ổn định</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="font-size:13px;color:#1e40af;background:#dbeafe;border-radius:8px;padding:10px 14px;line-height:1.75">
+        🎯 <strong>Lý do chọn ${bestCvAuc?.model || 'mô hình tốt nhất'}:</strong>
+        Đạt CV AUC trung bình cao nhất <strong>${bestCvAuc ? (bestCvAuc.cv_auc*100).toFixed(2) + '%' : ''}</strong> 
+        với độ lệch chuẩn nhỏ <strong>±${mostStable ? (mostStable.cv_std*100).toFixed(2) + '%' : ''}</strong>
+        (${mostStable?.model} — ổn định nhất) → Đảm bảo hiệu suất nhất quán khi triển khai thực tế.
+        ${leastStable && leastStable.model !== mostStable?.model ? 
+          `<br>⚠️ <strong>${leastStable.model}</strong> có Std cao nhất (±${(leastStable.cv_std*100).toFixed(2)}%) — biến động lớn hơn giữa các lần thử.` : ''}
+      </div>
+    `;
+  }
+
   const cvFoldsCtx = document.getElementById('chart-cv-folds');
   if (cvFoldsCtx && modelVersion && modelVersion.cv_results) {
     const cvData = modelVersion.cv_results;
