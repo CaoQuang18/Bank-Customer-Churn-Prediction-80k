@@ -8,7 +8,7 @@
       </p>
     </div>
     <span class="badge-pro success" style="display:inline-flex; align-items:center; gap:6px">
-      <span class="live-dot"></span>Model service sẵn sàng
+      <span class="live-dot"></span>AI Engine: Sẵn sàng
     </span>
   </div>
 
@@ -36,29 +36,31 @@
       <form id="predict-form">
 
         <!-- ĐỊNH DANH -->
-        <div class="form-section-label" style="background:var(--blue-50); color:var(--blue-800); border-left:4px solid var(--blue-500); padding:10px 14px; border-radius:6px; font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:16px; margin-top:24px">👤 Thông tin Định danh (Demographics)</div>
+        <div class="form-section-label" style="background:var(--blue-50); color:var(--blue-800); border-left:4px solid var(--blue-500); padding:10px 14px; border-radius:6px; font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:16px; margin-top:24px">👤 Thông tin Nhân khẩu học (Demographics)</div>
         <div class="form-grid">
           <div class="form-group">
             <label>Độ tuổi</label>
-            <input type="number" name="age" id="input-age" value="45" min="18" max="100" required />
+            <input type="number" name="age" id="input-age" placeholder="Ví dụ: 35" min="18" max="100" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Độ tuổi thực tế (18-100 tuổi)</div>
           </div>
           <div class="form-group">
             <label>Giới tính</label>
-            <select name="gender" id="input-gender">
+            <select name="gender" id="input-gender" required>
+              <option value="" disabled selected>Chọn Giới tính...</option>
               <option value="male">Nam</option>
-              <option value="female" selected>Nữ</option>
+              <option value="female">Nữ</option>
             </select>
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Phân định giới tính sinh học</div>
           </div>
           <div class="form-group">
             <label>Số năm gắn bó (Tenure)</label>
-            <input type="number" name="tenure_ye" id="input-tenure" value="3" min="0" max="30" required />
+            <input type="number" name="tenure_ye" id="input-tenure" placeholder="Số năm" min="0" max="30" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Số năm sử dụng dịch vụ</div>
           </div>
           <div class="form-group">
             <label>Tình trạng Hôn nhân</label>
-            <select name="married" id="input-married">
+            <select name="married" id="input-married" required>
+              <option value="" disabled selected>Chọn...</option>
               <option value="1">Đã kết hôn</option>
               <option value="0">Độc thân</option>
             </select>
@@ -71,22 +73,22 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Điểm tín dụng (Credit)</label>
-            <input type="number" name="credit_sco" id="input-credit" value="680" min="300" max="850" required />
+            <input type="number" name="credit_sco" id="input-credit" placeholder="300-850" min="300" max="850" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Tương đương FICO Score (300-850)</div>
           </div>
           <div class="form-group">
             <label>Hệ số rủi ro tín dụng</label>
-            <input type="number" name="risk_score" id="input-risk" value="0.25" min="0" max="1" step="0.01" required />
+            <input type="number" name="risk_score" id="input-risk" placeholder="Ví dụ: 0.15" min="0" max="1" step="0.01" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Thang đo CIC cục bộ (0.00 - 1.00)</div>
           </div>
           <div class="form-group">
             <label>Số dư tài khoản (VNĐ)</label>
-            <input type="number" name="balance" id="input-balance" value="5000000" required />
+            <input type="number" name="balance" id="input-balance" placeholder="Số dư hiện tại" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Bình quân CASA 3 tháng gần nhất</div>
           </div>
           <div class="form-group">
             <label>Thu nhập hằng tháng (VNĐ)</label>
-            <input type="number" name="monthly_ir" id="input-income" value="20000000" required />
+            <input type="number" name="monthly_ir" id="input-income" placeholder="Ví dụ: 15.000.000" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Nguồn tiền luân chuyển (Cash flow)</div>
           </div>
         </div>
@@ -96,24 +98,25 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Chỉ số tương tác (Engagement)</label>
-            <input type="number" name="engagement_score" id="input-engagement" value="40" min="0" max="100" required />
+            <input type="number" name="engagement_score" id="input-engagement" placeholder="0-100" min="0" max="100" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Đăng nhập & Giao dịch App (0-100)</div>
           </div>
           <div class="form-group">
             <label>Số Thẻ đang dùng</label>
-            <input type="number" name="nums_card" id="input-cards" value="1" min="1" max="10" required />
+            <input type="number" name="nums_card" id="input-cards" placeholder="Số lượng thẻ" min="1" max="10" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Thẻ Tín dụng / Thẻ Ghi nợ</div>
           </div>
           <div class="form-group">
             <label>Tổng SP/Dịch vụ</label>
-            <input type="number" name="nums_service" id="input-services" value="2" min="1" max="15" required />
+            <input type="number" name="nums_service" id="input-services" placeholder="Số lượng SP" min="1" max="15" required />
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Khoản vay, Bảo hiểm, T.Kiệm</div>
           </div>
           <div class="form-group">
             <label>Trạng thái (Active Mth)</label>
-            <select name="active_member" id="input-active">
+            <select name="active_member" id="input-active" required>
+              <option value="" disabled selected>Chọn Trạng thái...</option>
               <option value="1">Thường xuyên (Active)</option>
-              <option value="0" selected>Ít/Không GD (Inactive)</option>
+              <option value="0">Ít/Không GD (Inactive)</option>
             </select>
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Phát sinh giao dịch 30 ngày</div>
           </div>
@@ -124,8 +127,9 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Phân khúc KH (Segment)</label>
-            <select name="customer_segment" id="input-segment">
-              <option value="Mass" selected>Đại chúng (Mass)</option>
+            <select name="customer_segment" id="input-segment" required>
+              <option value="" disabled selected>Chọn...</option>
+              <option value="Mass">Đại chúng (Mass)</option>
               <option value="Emerging">Tiềm năng (Emerging)</option>
               <option value="Affluent">Gia sản (Affluent)</option>
               <option value="Priority">Ưu tiên (VIP/Priority)</option>
@@ -134,8 +138,9 @@
           </div>
           <div class="form-group">
             <label>Hạng thẻ viên (Loyalty)</label>
-            <select name="loyalty_level" id="input-loyalty">
-              <option value="Bronze" selected>Đồng (Bronze)</option>
+            <select name="loyalty_level" id="input-loyalty" required>
+              <option value="" disabled selected>Chọn...</option>
+              <option value="Bronze">Đồng (Bronze)</option>
               <option value="Silver">Bạc (Silver)</option>
               <option value="Gold">Vàng (Gold)</option>
               <option value="Platinum">Bạch kim (Platinum)</option>
@@ -144,8 +149,9 @@
           </div>
           <div class="form-group span-2">
             <label>Xu hướng giao dịch (Digital Behavior)</label>
-            <select name="digital_behavior" id="input-digital">
-              <option value="offline" selected>Tại quầy chi nhánh (Offline)</option>
+            <select name="digital_behavior" id="input-digital" required>
+              <option value="" disabled selected>Chọn Kênh giao dịch...</option>
+              <option value="offline">Tại quầy chi nhánh (Offline)</option>
               <option value="mobile">Trực tuyến (Mobile App/Web)</option>
             </select>
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Kênh tương tác tài chính chính yếu nhất của khách hàng</div>
@@ -153,7 +159,7 @@
         </div>
 
         <!-- MODEL SELECT -->
-        <div class="form-section-label" style="background:var(--red-50); color:var(--red-800); border-left:4px solid var(--red-500); padding:10px 14px; border-radius:6px; font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:16px; margin-top:24px">🤖 Cấu hình Bộ máy AI (ML Engine)</div>
+        <div class="form-section-label" style="background:var(--red-50); color:var(--red-800); border-left:4px solid var(--red-500); padding:10px 14px; border-radius:6px; font-weight:800; font-size:13px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:16px; margin-top:24px">🤖 Cấu hình Mô hình Dự báo (ML Engine)</div>
         <div class="form-group" style="margin-bottom:22px">
           <label>Cốt lõi Thuật toán Phân loại (Classifier)</label>
           <select name="model" id="input-model" style="border:2px solid var(--blue-500); font-weight:700; color:var(--blue-900); background:var(--blue-50)">
@@ -197,7 +203,7 @@
           <h3 style="margin:0;font-size:14px">⚡ Kết quả Phân tích Rủi ro</h3>
           <div style="display:flex; gap:8px">
             <span id="model-badge" style="font-size:11px;font-weight:600;background:var(--blue-50);color:var(--blue-700);padding:4px 10px;border-radius:20px;border:1px solid var(--blue-100)"></span>
-            <button onclick="window.print()" style="background:var(--gray-100); color:var(--gray-700); border:1px solid var(--gray-300); border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s">🖨️ Xuất Bản in</button>
+            <button onclick="window.print()" style="background:var(--gray-100); color:var(--gray-700); border:1px solid var(--gray-300); border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s">🖨️ In báo cáo</button>
           </div>
         </div>
 

@@ -8,7 +8,7 @@ const TAB_TITLES = {
   shap:       '🧠 SHAP: Giải thích Trí tuệ Nhân tạo',
   imbalanced: '⚖️ Xử lý Dữ liệu Mất cân bằng',
   clusters:   '🧩 Phân đoạn Khách hàng (Cluster)',
-  predict:    '🎯 Công cụ Dự báo Churn'
+  predict:    '🎯 Dự báo & Mô phỏng Rủi ro'
 };
 
 // 🎨 CẤU HÌNH CHART.JS CHUYÊN NGHIỆP (Point 4)
@@ -70,7 +70,7 @@ if (elAct) elAct.addEventListener('change', applyGlobalFilters);
 // ══════════════════════════════════════════════════════════
 const COLORS = ['#1a56db','#e02424','#057a55','#c27803','#7e3af2','#0e9f6e','#ff5a1f','#3f83f8'];
 
-function barChart(id, labels, data, label = 'Churn Rate (%)') {
+function barChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
   const ctx = document.getElementById(id);
   if (!ctx) return;
   if (ctx._chart) ctx._chart.destroy();
@@ -107,7 +107,7 @@ function barChart(id, labels, data, label = 'Churn Rate (%)') {
   });
 }
 
-function hbarChart(id, labels, data, label = 'Churn Rate (%)') {
+function hbarChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
   const ctx = document.getElementById(id);
   if (!ctx) return;
   if (ctx._chart) ctx._chart.destroy();
@@ -181,21 +181,21 @@ function setInsight(id, insight) {
 }
 
 const FEATURE_LABELS = {
-  credit_sco: 'Credit Score',
-  gender: 'Gender',
-  age: 'Age',
-  balance: 'Balance',
-  monthly_ir: 'Monthly Income',
-  tenure_ye: 'Tenure (Years)',
-  married: 'Marital Status',
-  nums_card: 'Num of Cards',
-  nums_service: 'Num of Services',
-  active_member: 'Active Member',
-  engagement_score: 'Engagement Score',
-  risk_score: 'Risk Score',
-  customer_segment: 'Customer Segment',
-  loyalty_level: 'Loyalty Level',
-  digital_behavior: 'Digital Behavior'
+  credit_sco: 'Điểm tín dụng',
+  gender: 'Giới tính',
+  age: 'Độ tuổi',
+  balance: 'Số dư tài khoản',
+  monthly_ir: 'Thu nhập hàng tháng',
+  tenure_ye: 'Số năm gắn bó',
+  married: 'Tình trạng hôn nhân',
+  nums_card: 'Số lượng thẻ',
+  nums_service: 'Số lượng dịch vụ',
+  active_member: 'Trạng thái hoạt động',
+  engagement_score: 'Điểm tương tác',
+  risk_score: 'Hệ số rủi ro',
+  customer_segment: 'Phân khúc khách hàng',
+  loyalty_level: 'Hạng trung thành',
+  digital_behavior: 'Hành vi số'
 };
 
 // Bản đồ tên thân thiện cho OHE features (ColumnTransformer output)
@@ -278,23 +278,15 @@ function renderConfusionMatrix(cm, modelName, accuracy) {
             </td>
           </tr>
         </table>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:11px">
-          <div style="background:#fff;padding:6px 8px;border-radius:4px">
-            <span style="color:#6b7280">Accuracy:</span>
+        <div style="font-size:12px;background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;line-height:1.6;margin-top:12px">
+            <span style="color:#6b7280">Độ chính xác:</span>
             <strong style="color:#059669">${(accuracy * 100).toFixed(1)}%</strong>
-          </div>
-          <div style="background:#fff;padding:6px 8px;border-radius:4px">
-            <span style="color:#6b7280">Precision:</span>
+            <br>
+            <span style="color:#6b7280">Độ chính xác (Precision):</span>
             <strong style="color:#1a56db">${(precision * 100).toFixed(1)}%</strong>
-          </div>
-          <div style="background:#fff;padding:6px 8px;border-radius:4px">
-            <span style="color:#6b7280">Recall:</span>
+            <br>
+            <span style="color:#6b7280">Độ nhạy (Recall):</span>
             <strong style="color:#e02424">${(recall * 100).toFixed(1)}%</strong>
-          </div>
-          <div style="background:#fff;padding:6px 8px;border-radius:4px">
-            <span style="color:#6b7280">FPR:</span>
-            <strong style="color:#c27803">${(fpr * 100).toFixed(1)}%</strong>
-          </div>
         </div>
       </div>
     </div>
@@ -314,10 +306,10 @@ function analyzeModelDeeply(results, comparison) {
   const bestAuc = ranked[0]?.model || null;
   const worstAuc = ranked.length ? ranked[ranked.length - 1].model : null;
   const badgeFor = (name) => {
-    if (!name || !ranked.length) return { label: '—', bg: '#f1f5f9', color: '#334155' };
-    if (name === bestAuc) return { label: 'Ưu nhiều · Nhược ít (Top AUC)', bg: '#dcfce7', color: '#166534' };
-    if (name === worstAuc) return { label: 'Ưu ít · Nhược nhiều (Low AUC)', bg: '#ffe4e6', color: '#9f1239' };
-    return { label: 'Cân bằng (Mid)', bg: '#e0f2fe', color: '#075985' };
+    if (!name || !ranked.length) return { label: '-', bg: '#f1f5f9', color: '#334155' };
+    if (name === bestAuc) return { label: 'Hiệu suất cao nhất (Top AUC)', bg: '#dcfce7', color: '#166534' };
+    if (name === worstAuc) return { label: 'Hiệu suất thấp nhất (Low AUC)', bg: '#ffe4e6', color: '#9f1239' };
+    return { label: 'Hiệu suất ổn định', bg: '#f8fafc', color: '#64748b' };
   };
 
   const rows = [
@@ -449,31 +441,31 @@ function analyzeTradeoff(results, comparison) {
       rf:  fmt(rf.roc_auc),
       xgb: fmt(xgb.roc_auc),
       lrH: lr.roc_auc === maxAuc, rfH: rf.roc_auc === maxAuc, xgbH: xgb.roc_auc === maxAuc,
-      note: 'Diện tích dưới đường ROC — chỉ số phân loại tổng thể'
+      note: 'Khả năng phân biệt khách hàng rời bỏ và ở lại (0.5 - 1.0)'
     },
     {
-      label: 'Recall ↑',
+      label: 'Độ nhạy (Recall) ↑',
       lr:  fmtPct(lr.recall),
       rf:  fmtPct(rf.recall),
       xgb: fmtPct(xgb.recall),
       lrH: lr.recall === maxRecall, rfH: rf.recall === maxRecall, xgbH: xgb.recall === maxRecall,
-      note: '⭐ Ưu tiên trong bài toán Churn — bắt được nhiều KH sắp rời'
+      note: '⭐ Ưu tiên hàng đầu — Tỷ lệ bắt chính xác khách hàng sắp rời'
     },
     {
-      label: 'Precision',
+      label: 'Độ chính xác (Precision)',
       lr:  fmtPct(lr.precision),
       rf:  fmtPct(rf.precision),
       xgb: fmtPct(xgb.precision),
       lrH: false, rfH: false, xgbH: false,
-      note: 'Precision thấp → nhiều false alarm → lãng phí chi phí retention'
+      note: 'Giảm thiểu báo động nhầm và lãng phí chi phí chăm sóc'
     },
     {
-      label: 'F1-Score',
+      label: 'Điểm F1-Score',
       lr:  fmtPct(lr.f1),
       rf:  fmtPct(rf.f1),
       xgb: fmtPct(xgb.f1),
       lrH: lr.f1 === maxF1, rfH: rf.f1 === maxF1, xgbH: xgb.f1 === maxF1,
-      note: 'Cân bằng tổng hợp Precision/Recall'
+      note: 'Chỉ số trung bình điều hòa của Precision và Recall'
     },
     {
       label: 'Threshold',
@@ -544,29 +536,29 @@ function getModelRecommendation(results, comparison) {
   return `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
       <div style="padding:14px;background:#ecfdf5;border-radius:8px;border-left:4px solid #057a55">
-        <strong style="color:#047857">🎯 Mục tiêu: Giữ chân KH tối đa (Recall cao)</strong>
+        <strong style="color:#047857">🎯 Mục tiêu: Giữ chân khách hàng tối đa (Recall cao)</strong>
         <div style="font-size:13px;margin-top:8px">
-          <strong>→ Ưu tiên:</strong> ${byRecall ? byRecall.model : '—'}<br>
-          Recall (test) ≈ ${byRecall ? fmtPct(byRecall.recall) : '—'}<br>
-          Ghi chú: Recall phụ thuộc ngưỡng quyết định (threshold)
+          <strong>→ Giải pháp:</strong> ${byRecall ? byRecall.model : '—'}<br>
+          Chỉ số Độ nhạy (Recall) ≈ ${byRecall ? fmtPct(byRecall.recall) : '—'}<br>
+          Ghi chú: Recall phụ thuộc vào ngưỡng quyết định.
         </div>
       </div>
       
       <div style="padding:14px;background:#eff6ff;border-radius:8px;border-left:4px solid #1a56db">
-        <strong style="color:#1e429f">🎯 Mục tiêu: Chọn lọc KH (Precision cao)</strong>
+        <strong style="color:#1e429f">🎯 Mục tiêu: Tập trung nguồn lực (Precision cao)</strong>
         <div style="font-size:13px;margin-top:8px">
-          <strong>→ Ưu tiên:</strong> ${byPrecision ? byPrecision.model : '—'}<br>
-          Precision (test) ≈ ${byPrecision ? fmtPct(byPrecision.precision) : '—'}<br>
-          Ghi chú: Precision/Recall đánh đổi theo threshold
+          <strong>→ Giải pháp:</strong> ${byPrecision ? byPrecision.model : '—'}<br>
+          Độ chính xác (Precision) ≈ ${byPrecision ? fmtPct(byPrecision.precision) : '—'}<br>
+          Ghi chú: Đánh đổi tỉ lệ Precision/Recall qua Ngưỡng.
         </div>
       </div>
       
       <div style="padding:14px;background:#fef3c7;border-radius:8px;border-left:4px solid #c27803">
-        <strong style="color:#92400e">🎯 Mục tiêu: Cân bằng (F1 cao)</strong>
+        <strong style="color:#92400e">🎯 Mục tiêu: Cân bằng toàn diện (F1-Score cao)</strong>
         <div style="font-size:13px;margin-top:8px">
-          <strong>→ Ưu tiên:</strong> ${byF1 ? byF1.model : '—'}<br>
-          F1 (test) ≈ ${byF1 ? (Number(byF1.f1).toFixed(3)) : '—'}<br>
-          Ghi chú: F1 cân bằng Precision/Recall
+          <strong>→ Giải pháp:</strong> ${byF1 ? byF1.model : '—'}<br>
+          Điểm F1-Score ≈ ${byF1 ? (Number(byF1.f1).toFixed(3)) : '—'}<br>
+          Ghi chú: Dung hòa giữa Độ nhạy và Độ chính xác.
         </div>
       </div>
       
@@ -2370,6 +2362,11 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
       const active = r.active_member || 0;
       const digital = (r.digital_behavior || 'offline').toLowerCase();
       
+      const loyaltyMap = { 0: 'Bronze', 1: 'Silver', 2: 'Gold', 3: 'Platinum' };
+      const loyaltyRaw = r.loyalty_level;
+      const loyaltyDisp = loyaltyMap[loyaltyRaw] || loyaltyRaw || '—';
+      const loyaltyColor = loyaltyDisp === 'Bronze' ? '#92400e' : loyaltyDisp === 'Gold' ? '#854d0e' : loyaltyDisp === 'Platinum' ? '#1e3a8a' : '#1e293b';
+      
       let riskScore = 0;
       if (age >= 18 && age <= 30) riskScore += 20;
       if (engagement < 30) riskScore += 30;
@@ -2387,7 +2384,7 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
           <td style="padding:12px;text-align:center">${(r.gender||'').toLowerCase().includes('female') || (r.gender||'').includes('nữ') ? '👩' : '👨'}</td>
           <td style="padding:12px;text-align:center"><span class="badge-pro info" style="font-size:10px">${r.customer_segment || '—'}</span></td>
           <td style="padding:12px;text-align:center">
-            <span style="color:${r.loyalty_level === 'Bronze' ? '#92400e' : r.loyalty_level === 'Gold' ? '#854d0e' : '#1e3a8a'};font-weight:700">${r.loyalty_level || '—'}</span>
+            <span style="color:${loyaltyColor};font-weight:700">${loyaltyDisp}</span>
           </td>
           <td style="padding:12px;text-align:right;font-weight:700">${Math.round(balance / 1e6)}M</td>
           <td style="padding:12px;text-align:center">${engagement}</td>
