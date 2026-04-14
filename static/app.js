@@ -843,6 +843,7 @@ async function loadEDA() {
       if (ageCtx._chart) ageCtx._chart.destroy();
       const churnCounts = eda.age.counts.map((c, i) => Math.round(c * eda.age.churn_rates[i] / 100));
       const noChurnCounts = eda.age.counts.map((c, i) => c - Math.round(c * eda.age.churn_rates[i] / 100));
+      const ageTotalCounts = eda.age.counts;
       ageCtx._chart = new Chart(ageCtx, {
         type: 'bar',
         data: {
@@ -855,8 +856,33 @@ async function loadEDA() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' } },
-          scales: { y: { beginAtZero: true } }
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const labelIdx = ctx.dataIndex;
+                  const total = ageTotalCounts[labelIdx] || 1;
+                  const val = ctx.parsed.y;
+                  const pct = ((val / total) * 100).toFixed(1);
+                  return `${ctx.dataset.label}: ${val.toLocaleString('vi-VN')} (${pct}%)`;
+                },
+                afterBody: function(ctxItems) {
+                  const labelIdx = ctxItems[0]?.dataIndex;
+                  if (labelIdx !== undefined && eda.age.churn_rates) {
+                    return [`Churn Rate nhóm này: ${eda.age.churn_rates[labelIdx]}%`];
+                  }
+                  return [];
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: v => v.toLocaleString('vi-VN') }
+            }
+          }
         }
       });
     }
