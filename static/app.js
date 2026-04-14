@@ -1404,7 +1404,7 @@ async function loadModels() {
   
   const fiIns = document.getElementById('insight-feat-imp');
   if (fiIns) {
-    fiIns.innerHTML = `<strong>💡 Core Drivers:</strong> Mức độ tương tác (Engagement) và Số lượng sản phẩm/số dư là những yếu tố có sức nặng quyết định nhất đến mô hình. Đây là cơ sở cốt lõi để xây dựng chiến dịch giữ chân.`;
+    fiIns.innerHTML = `<strong>💡 Core Drivers:</strong> Mức Thu nhập hàng tháng (Monthly Income), Điểm Rủi ro (Risk Score) và Số dư tài khoản (Balance) là những yếu tố có sức nặng quyết định nhất đến phán đoán của mô hình. Đây là cơ sở cốt lõi để xây dựng chiến dịch giữ chân.`;
   }
 
   // 4. Confusion Matrix Interactivity
