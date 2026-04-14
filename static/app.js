@@ -1397,7 +1397,7 @@ async function loadModels() {
 
   // 3. Feature Importance
   if (featImp.combined) {
-    const entries = Object.entries(featImp.combined).slice(0, 8);
+    const entries = Object.entries(featImp.combined).sort((a, b) => b[1] - a[1]).slice(0, 8);
     const labels = entries.map(e => cleanFeatureName(e[0]));
     barChart('chart-feat-imp', labels, entries.map(e => e[1]), 'Tầm quan trọng (%)');
   }
