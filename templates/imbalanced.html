@@ -64,7 +64,7 @@
       <span style="font-size:18px">📝</span> Thẩm Định Kỹ Thuật (Technical Validation)
     </h3>
     <p style="color:var(--gray-700); line-height:1.75; font-size:14px; margin:0">
-      Do phân phối nhãn đích bị mất cân bằng (ví dụ ~18%/82%), nếu giữ nguyên dữ liệu gốc mô hình có xu hướng thiên về lớp đa số (majority class) và làm giảm khả năng phát hiện lớp Churn. Kỹ thuật <strong>SMOTE</strong> tạo thêm mẫu cho lớp thiểu số bằng nội suy dựa trên K-Nearest Neighbors trong không gian đặc trưng, giúp cải thiện Recall trong nhiều trường hợp. Sau đó, hệ thống hiệu chỉnh <strong>threshold</strong> để cân bằng trade-off Precision/Recall theo mục tiêu chi phí (giảm bỏ sót rủi ro nhưng không tăng báo động nhầm quá mức).
+      Do phân phối nhãn đích bị mất cân bằng (tỷ lệ lớp thiểu số: <strong id="minority-pct-text">--%</strong>), nếu giữ nguyên dữ liệu gốc mô hình có xu hướng thiên về lớp đa số (majority class) và làm giảm khả năng phát hiện lớp Churn. Kỹ thuật <strong>SMOTE</strong> tạo thêm mẫu cho lớp thiểu số bằng nội suy dựa trên K-Nearest Neighbors trong không gian đặc trưng, giúp cải thiện Recall trong nhiều trường hợp. Sau đó, hệ thống hiệu chỉnh <strong>threshold</strong> để cân bằng trade-off Precision/Recall theo mục tiêu chi phí (giảm bỏ sót rủi ro nhưng không tăng báo động nhầm quá mức).
     </p>
   </div>
 

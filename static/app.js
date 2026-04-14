@@ -227,8 +227,8 @@ function cleanFeatureName(rawFeature) {
 }
 
 const METHOD_LABELS = {
-  'Baseline': 'Baseline (Không xử lý)',
-  'Baseline (No处理)': 'Baseline (Không xử lý)',
+  'Baseline': 'Baseline (No Processing)',
+  'Baseline (No处理)': 'Baseline (No Processing)',
   'Class Weights': 'Class Weights',
   'SMOTE': 'SMOTE',
   'SMOTE_ClassWeights': 'SMOTE + Class Weights',
@@ -279,13 +279,13 @@ function renderConfusionMatrix(cm, modelName, accuracy) {
           </tr>
         </table>
         <div style="font-size:12px;background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;line-height:1.6;margin-top:12px">
-            <span style="color:#6b7280">Độ chính xác:</span>
+            <span style="color:#6b7280">Accuracy:</span>
             <strong style="color:#059669">${(accuracy * 100).toFixed(1)}%</strong>
             <br>
-            <span style="color:#6b7280">Độ chính xác (Precision):</span>
+            <span style="color:#6b7280">Precision:</span>
             <strong style="color:#1a56db">${(precision * 100).toFixed(1)}%</strong>
             <br>
-            <span style="color:#6b7280">Độ nhạy (Recall):</span>
+            <span style="color:#6b7280">Recall:</span>
             <strong style="color:#e02424">${(recall * 100).toFixed(1)}%</strong>
         </div>
       </div>
@@ -707,7 +707,7 @@ async function loadOverview() {
   document.getElementById('top-features').innerHTML = tf.map((f, i) =>
     `<div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px" title="${f === 'risk_score' ? 'Biến tổng hợp đo lường hệ số rủi ro tín dụng ròng từ Core Banking' : ''}">
       <span style="background:var(--blue-50); width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:12px; font-weight:800; color:var(--blue-700); border:1px solid var(--blue-100); flex-shrink:0">${i+1}</span>
-      <span style="font-weight:600; color:var(--gray-800); flex:1">${FEATURE_LABELS[f] || f}</span>
+      <span style="font-weight:600; color:var(--gray-800); flex:1">${cleanFeatureName(f)}</span>
       ${importanceNote[f] ? `<span style="font-size:11px; background:var(--emerald-50); padding:3px 8px; border-radius:12px; color:var(--emerald-700); border:1px solid var(--emerald-200); font-weight:600; cursor:help">${importanceNote[f]}</span>` : ''}
     </div>`
   ).join('') || '—';
@@ -1762,6 +1762,10 @@ async function loadImbalanceAnalysis() {
         </div>
       </div>
     `;
+
+    // Cập nhật text động trong phần Thẩm định kỹ thuật (Audit-safe)
+    const minPctText = document.getElementById('minority-pct-text');
+    if (minPctText) minPctText.textContent = `${imb.minority_pct}%/${100 - imb.minority_pct}%`;
     
     // Methods Comparison Table
     const methods = res.methods_comparison || {};
@@ -1971,6 +1975,17 @@ async function loadClusters() {
   const strategies = data.strategies || {};
   clusterCustomers = data.customers || {};
   const elbowData = data.elbow_data || {};
+
+  // Cập nhật các badge động để tránh dữ liệu cứng (Audit-safe)
+  const silBadge = document.getElementById('silhouette-badge');
+  if (silBadge && elbowData.silhouette_scores) {
+    const maxSil = Math.max(...elbowData.silhouette_scores.filter(v => v !== null));
+    silBadge.textContent = `Silhouette Score: ${maxSil.toFixed(3)}`;
+  }
+  const kBadge = document.getElementById('k-count-badge');
+  if (kBadge) {
+    kBadge.textContent = `K-Means · k=${profiles.length} Phân đoạn (Segments)`;
+  }
 
   // Elbow chart
   if (elbowData.k_range) {
@@ -2390,7 +2405,7 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
           <td style="padding:12px;text-align:center">${engagement}</td>
           <td style="padding:12px;text-align:center">${active ? '✅' : '❌'}</td>
           <td style="padding:12px;text-align:center">
-            ${digital.includes('mobile') ? '📱' : digital.includes('web') ? '💻' : digital.includes('omni') ? '🔄' : '🏪'}
+            ${digital.includes('mobile') ? '📱' : '🏪'}
           </td>
           <td style="padding:12px;text-align:center">
             <span class="badge-pro ${riskBadgeClass}">${riskLevel}</span>
@@ -2549,22 +2564,28 @@ async function runSimulation() {
   if (!lastPayload) return;
   
   const balance = document.getElementById('sim-balance').value;
+  const income = document.getElementById('sim-income').value;
+  const risk = document.getElementById('sim-risk').value;
   const engagement = document.getElementById('sim-engagement').value;
   const tenure = document.getElementById('sim-tenure').value;
   
   // Cập nhật số liệu trên UI ngay lập tức
   document.getElementById('sim-balance-val').textContent = parseInt(balance).toLocaleString() + 'đ';
+  document.getElementById('sim-income-val').textContent = parseInt(income).toLocaleString() + 'đ';
+  document.getElementById('sim-risk-val').textContent = risk;
   document.getElementById('sim-engagement-val').textContent = engagement;
   document.getElementById('sim-tenure-val').textContent = tenure + ' năm';
 
-  debouncedApiCall(balance, engagement, tenure);
+  debouncedApiCall(balance, income, risk, engagement, tenure);
 }
 
-const debouncedApiCall = debounce(async (balance, engagement, tenure) => {
-  // Use lastPayload as base (contains actual form values), then override the 3 sliders
+const debouncedApiCall = debounce(async (balance, income, risk, engagement, tenure) => {
+  // Use lastPayload as base (contains actual form values), then override the sliders
   const simPayload = { 
     ...lastPayload,
     balance: balance,
+    monthly_ir: income,
+    risk_score: risk,
     engagement_score: engagement,
     tenure_ye: tenure
   };
@@ -2623,7 +2644,7 @@ const debouncedApiCall = debounce(async (balance, engagement, tenure) => {
 }, 250); // Đợi 250ms sau khi ngừng kéo
 
 // Slider listeners
-['sim-balance', 'sim-engagement', 'sim-tenure'].forEach(id => {
+['sim-balance', 'sim-income', 'sim-risk', 'sim-engagement', 'sim-tenure'].forEach(id => {
   document.getElementById(id).addEventListener('input', runSimulation);
 });
 
@@ -2638,32 +2659,46 @@ window.autofillDemo = function(type) {
   
   const fill = (name, val) => {
     const el = form.querySelector(`[name="${name}"]`);
-    if(el) el.value = val;
+    if(el) {
+      el.value = val;
+      // Kích hoạt sự kiện change để UI/Select đồng bộ
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   };
 
   if (type === 'high_risk') {
     fill('age', 48);
     fill('gender', 'female');
     fill('credit_sco', 580);
-    fill('balance', 0); // No money
-    fill('nums_service', 1); // Only 1 product
-    fill('nums_card', 1); // Only 1 card
-    fill('active_member', 0); // Not active
-    fill('tenure_ye', 1); // Only 1 year
-    fill('engagement_score', 15); // Low engagement
-    fill('monthly_ir', 5000000); // Low income
+    fill('balance', 0); 
+    fill('nums_service', 1); 
+    fill('nums_card', 1); 
+    fill('active_member', '0'); 
+    fill('tenure_ye', 1); 
+    fill('engagement_score', 15); 
+    fill('monthly_ir', 5000000);
+    fill('risk_score', 0.85);
+    fill('customer_segment', 'Mass');
+    fill('loyalty_level', 'Bronze');
+    fill('married', '0');
+    fill('digital_behavior', 'offline');
   } 
   else if (type === 'vip_safe') {
     fill('age', 35);
     fill('gender', 'male');
-    fill('credit_sco', 810); // High credit
-    fill('balance', 250000000); // 250M balance
-    fill('nums_service', 3); // 3 products
-    fill('nums_card', 2); // 2 cards
-    fill('active_member', 1); // Super active
-    fill('tenure_ye', 8); // 8 years tenure
-    fill('engagement_score', 85); // High engagement
-    fill('monthly_ir', 45000000); // High income
+    fill('credit_sco', 810); 
+    fill('balance', 250000000); 
+    fill('nums_service', 3); 
+    fill('nums_card', 2); 
+    fill('active_member', '1'); 
+    fill('tenure_ye', 8); 
+    fill('engagement_score', 85); 
+    fill('monthly_ir', 45000000);
+    fill('risk_score', 0.05);
+    fill('customer_segment', 'Priority');
+    fill('loyalty_level', 'Gold');
+    fill('married', '1');
+    fill('digital_behavior', 'mobile');
   }
   
   // Highlight flash effect
@@ -2751,18 +2786,28 @@ document.getElementById('predict-form').addEventListener('submit', async (e) => 
     const simSection = document.getElementById('simulation-section');
     simSection.style.display = 'block';
     
+    // 1. Balance
     const sBalance = document.getElementById('sim-balance');
-    sBalance.min = 0;
-    sBalance.max = Math.max(parseFloat(payload.balance) * 2, 50000000); // 50M limit
+    sBalance.max = Math.max(parseFloat(payload.balance) * 1.5, 500000000); // Mở rộng theo mẫu VIP
     sBalance.value = payload.balance;
     document.getElementById('sim-balance-val').textContent = parseInt(payload.balance).toLocaleString() + 'đ';
 
+    // 2. Income
+    const sIncome = document.getElementById('sim-income');
+    sIncome.value = payload.monthly_ir;
+    document.getElementById('sim-income-val').textContent = parseInt(payload.monthly_ir).toLocaleString() + 'đ';
+
+    // 3. Risk Score
+    const sRisk = document.getElementById('sim-risk');
+    sRisk.value = payload.risk_score;
+    document.getElementById('sim-risk-val').textContent = payload.risk_score;
+
+    // 4. Engagement
     const sEngage = document.getElementById('sim-engagement');
-    sEngage.min = 0;
-    sEngage.max = 100;
     sEngage.value = payload.engagement_score;
     document.getElementById('sim-engagement-val').textContent = payload.engagement_score;
 
+    // 5. Tenure
     const sTenure = document.getElementById('sim-tenure');
     sTenure.value = payload.tenure_ye;
     document.getElementById('sim-tenure-val').textContent = payload.tenure_ye + ' năm';

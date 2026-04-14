@@ -143,7 +143,6 @@
               <option value="Bronze">Đồng (Bronze)</option>
               <option value="Silver">Bạc (Silver)</option>
               <option value="Gold">Vàng (Gold)</option>
-              <option value="Platinum">Bạch kim (Platinum)</option>
             </select>
             <div style="font-size:10.5px;color:var(--gray-500);margin-top:4px">Chức danh ưu đãi điểm tích lũy</div>
           </div>
@@ -235,12 +234,24 @@
             <h4 style="color:var(--blue-900); margin:0; font-size:14px; font-weight:800">🕹️ Cơ chế Dò tìm Tối ưu (What-if Stress Test)</h4>
             <span style="font-size:11px;font-weight:700;background:var(--blue-600);color:white;padding:3px 8px;border-radius:6px;text-transform:uppercase">What-if</span>
           </div>
-          <div style="display:grid; gap:10px">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px">
             <div>
               <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:#64748b">
                 <span>Số dư tài khoản:</span><span id="sim-balance-val" style="font-weight:600">0</span>
               </div>
-              <input type="range" id="sim-balance" min="0" max="100000000" style="width:100%; accent-color:#1d4ed8">
+              <input type="range" id="sim-balance" min="0" max="500000000" step="1000000" style="width:100%; accent-color:#1d4ed8">
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:#64748b">
+                <span>Thu nhập tháng:</span><span id="sim-income-val" style="font-weight:600">0</span>
+              </div>
+              <input type="range" id="sim-income" min="0" max="100000000" step="1000000" style="width:100%; accent-color:#059669">
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:#64748b">
+                <span>Điểm rủi ro:</span><span id="sim-risk-val" style="font-weight:600">0</span>
+              </div>
+              <input type="range" id="sim-risk" min="0" max="1" step="0.01" style="width:100%; accent-color:#dc2626">
             </div>
             <div>
               <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:#64748b">
@@ -248,12 +259,12 @@
               </div>
               <input type="range" id="sim-engagement" min="0" max="100" style="width:100%; accent-color:#0891b2">
             </div>
-            <div>
+          </div>
+          <div style="margin-top:10px">
               <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; color:#64748b">
                 <span>Thời gian gắn bó (năm):</span><span id="sim-tenure-val" style="font-weight:600">0</span>
               </div>
-              <input type="range" id="sim-tenure" min="0" max="25" step="1" style="width:100%; accent-color:#16a34a">
-            </div>
+              <input type="range" id="sim-tenure" min="0" max="30" step="1" style="width:100%; accent-color:#16a34a">
           </div>
         </div>
 
@@ -354,9 +365,39 @@
   </div>
 
   <!-- Guide -->
-  <div class="card" style="margin-top:28px; padding:20px">
-    <h3 style="font-size:14px; margin-bottom:10px">📖 Hướng dẫn Sử dụng</h3>
     <div id="predict-guide" style="font-size:13.5px; color:#64748b; line-height:1.75">Đang tải hướng dẫn...</div>
+  </div>
+
+  <!-- Methodology Transparency Card (Thesis-Ready) -->
+  <div class="card" style="margin-top:28px; padding:24px; background:linear-gradient(to bottom right, #f8faff, #fff); border:1px solid #e0e7ff; box-shadow:0 4px 20px -5px rgba(0,0,0,0.05)">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid #eef2ff">
+      <div style="background:#1d4ed8; color:white; width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 4px 6px -1px rgba(29, 78, 216, 0.2)">🛠️</div>
+      <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e1b4b; text-transform:uppercase; letter-spacing:0.04em">Cơ chế Vận hành của AI Engine (Methodology)</h3>
+    </div>
+    
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; position:relative">
+      <div style="padding:16px; background:white; border-radius:12px; border:1px solid #f1f5f9; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+        <div style="color:#2563eb; font-weight:800; font-size:11px; margin-bottom:8px">BƯỚC 1</div>
+        <div style="font-weight:700; font-size:13.5px; color:#334155; margin-bottom:8px">Tiền xử lý Dữ liệu</div>
+        <div style="font-size:12.5px; color:#64748b; line-height:1.6">Toàn bộ hồ sơ nhập vào được chuyển đổi sang dạng số chuẩn hóa (Scaling) và mã hóa (Encoding) để đảm bảo độ đồng nhất về biên độ dữ liệu cho mô hình.</div>
+      </div>
+      
+      <div style="padding:16px; background:white; border-radius:12px; border:1px solid #f1f5f9; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+        <div style="color:#2563eb; font-weight:800; font-size:11px; margin-bottom:8px">BƯỚC 2</div>
+        <div style="font-weight:700; font-size:13.5px; color:#334155; margin-bottom:8px">Xử lý Thuật toán</div>
+        <div style="font-size:12.5px; color:#64748b; line-height:1.6">Hệ thống nạp trọng số từ mô hình <strong>Logistic Regression</strong> (đã được tối ưu hóa ở phần Đánh giá) để thực hiện tính toán hàm Scoring theo từng đặc trưng riêng biệt.</div>
+      </div>
+      
+      <div style="padding:16px; background:white; border-radius:12px; border:1px solid #f1f5f9; box-shadow:0 2px 4px rgba(0,0,0,0.02)">
+        <div style="color:#2563eb; font-weight:800; font-size:11px; margin-bottom:8px">BƯỚC 3</div>
+        <div style="font-weight:700; font-size:13.5px; color:#334155; margin-bottom:8px">Xác suất & Phân đoạn</div>
+        <div style="font-size:12.5px; color:#64748b; line-height:1.6">Máy tính trả về xác suất thống kê khách hàng rời bỏ (0-100%) và tự động gán khách hàng vào các nhóm hành vi (Cluster) tương ứng để đưa ra gợi ý.</div>
+      </div>
+    </div>
+    
+    <div style="margin-top:20px; padding:12px 16px; background:#eff6ff; border-radius:10px; border:1px dashed #bfdbfe; font-size:12.5px; color:#1e40af; line-height:1.7">
+      <strong>📌 Ghi chú Khoa học:</strong> Kết quả trên là dự báo mang tính xác suất dựa trên các mẫu dữ liệu lịch sử. Ngưỡng (Threshold) được hệ thống tự hiệu chỉnh để cân bằng giữa độ nhạy (Recall) và độ chính xác (Precision) cho đơn vị vận hành.
+    </div>
   </div>
 
   <div class="conclusion-pro" style="margin-top:24px">

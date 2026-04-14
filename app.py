@@ -168,7 +168,7 @@ def calculate_roi(n_customers, recall, avg_ltv=5000000, cost_per_cust=200000):
 
 
 # Ordinal map for loyalty_level — must match feature_engineering.py
-LOYALTY_MAP = {'Bronze': 0, 'Silver': 1, 'Gold': 2, 'Platinum': 3}
+LOYALTY_MAP = {'Bronze': 0, 'Silver': 1, 'Gold': 2}
 
 # OHE category values — must match pd.get_dummies(drop_first=True) from feature_engineering.py
 # drop_first=True drops the first alphabetical category for each column:
