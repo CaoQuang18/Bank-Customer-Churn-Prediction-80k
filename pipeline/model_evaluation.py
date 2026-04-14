@@ -234,6 +234,9 @@ def main():
     with open("outputs/comparison.json", "w", encoding="utf-8") as f:
         json.dump({"table": comparison, "insights": compare_insights}, f, ensure_ascii=False, indent=2)
 
+    with open("outputs/feat_imp.json", "w", encoding="utf-8") as f:
+        json.dump(feat_imp, f, ensure_ascii=False, indent=2)
+
     print("\n[OK] Pipeline completed with Zero Leakage Strategy.")
 
 if __name__ == "__main__":
