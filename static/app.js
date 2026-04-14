@@ -2101,26 +2101,39 @@ async function loadClusters() {
   sel.innerHTML = profiles.map(p =>
     `<option value="${p.cluster}">Cum ${p.cluster}: ${p.cluster_name}</option>`
   ).join('');
-  sel.addEventListener('change', () => renderClusterCustomers(parseInt(sel.value), document.getElementById('filter-segment').value, document.getElementById('filter-active').value));
+  sel.addEventListener('change', () => {
+    const elS = document.getElementById('filter-segment');
+    const elA = document.getElementById('filter-active');
+    renderClusterCustomers(parseInt(sel.value), elS ? elS.value : 'all', elA ? elA.value : 'all');
+  });
   
   // Custom Filters for Customer Table
-  document.getElementById('filter-segment').addEventListener('change', (e) => {
-    renderClusterCustomers(parseInt(sel.value), e.target.value, document.getElementById('filter-active').value);
-  });
-  document.getElementById('filter-active').addEventListener('change', (e) => {
-    renderClusterCustomers(parseInt(sel.value), document.getElementById('filter-segment').value, e.target.value);
-  });
+  const elSeg = document.getElementById('filter-segment');
+  if (elSeg) {
+    elSeg.addEventListener('change', (e) => {
+      const elA = document.getElementById('filter-active');
+      renderClusterCustomers(parseInt(sel.value), e.target.value, elA ? elA.value : 'all');
+    });
+  }
+  const elAct = document.getElementById('filter-active');
+  if (elAct) {
+    elAct.addEventListener('change', (e) => {
+      const elS = document.getElementById('filter-segment');
+      renderClusterCustomers(parseInt(sel.value), elS ? elS.value : 'all', e.target.value);
+    });
+  }
   
   // Export CSV Action
   const btnExport = document.getElementById('btn-export-csv');
   if (btnExport) {
-     // prevent duplicate listener if loaded multiple times
      const newBtn = btnExport.cloneNode(true);
      btnExport.parentNode.replaceChild(newBtn, btnExport);
      newBtn.addEventListener('click', () => {
         const selCluster = parseInt(sel.value);
-        const fSeg = document.getElementById('filter-segment').value;
-        const fAct = document.getElementById('filter-active').value;
+        const elS = document.getElementById('filter-segment');
+        const elA = document.getElementById('filter-active');
+        const fSeg = elS ? elS.value : 'all';
+        const fAct = elA ? elA.value : 'all';
         let cRows = clusterCustomers[selCluster] || [];
         if (fSeg !== 'all') cRows = cRows.filter(r => r.customer_segment === fSeg);
         if (fAct !== 'all') cRows = cRows.filter(r => (r.active_member || 0).toString() === fAct);
