@@ -73,10 +73,10 @@ const COLORS = ['#1a56db','#e02424','#057a55','#c27803','#7e3af2','#0e9f6e','#ff
 function fmtVndCompact(v) {
   const n = Number(v || 0);
   const abs = Math.abs(n);
-  if (abs >= 1e9) return `${(n / 1e9).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Tỷ ₫`;
-  if (abs >= 1e6) return `${Math.round(n / 1e6).toLocaleString('vi-VN')} Triệu ₫`;
-  if (abs >= 1e3) return `${Math.round(n / 1e3).toLocaleString('vi-VN')} Nghìn ₫`;
-  return `${Math.round(n).toLocaleString('vi-VN')} ₫`;
+  if (abs >= 1e9) return `${(n / 1e9).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Tỷ VNĐ`;
+  if (abs >= 1e6) return `${Math.round(n / 1e6).toLocaleString('vi-VN')} Triệu VNĐ`;
+  if (abs >= 1e3) return `${Math.round(n / 1e3).toLocaleString('vi-VN')} Nghìn VNĐ`;
+  return `${Math.round(n).toLocaleString('vi-VN')} VNĐ`;
 }
 
 function fmtVndCompactFromMillion(vMillion) {
@@ -85,11 +85,19 @@ function fmtVndCompactFromMillion(vMillion) {
 
 function wrapTickLabel(label) {
   const s = String(label ?? '');
+  // Nếu có dấu gạch ngang (khoảng giá trị), ngắt dòng tại đó
   if (s.includes('–')) {
     const parts = s.split('–').map(x => x.trim()).filter(Boolean);
     if (parts.length === 2) return [`${parts[0]}–`, parts[1]];
   }
-  if (s.length > 16 && s.includes(' ')) return s.split(' ');
+  // Nếu quá dài (>18 ký tự) và có khoảng trắng, thử ngắt dòng cho cân đối
+  if (s.length > 18 && s.includes(' ')) {
+    const words = s.split(' ');
+    if (words.length >= 2) {
+      const mid = Math.ceil(words.length / 2);
+      return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+    }
+  }
   return s;
 }
 
@@ -289,29 +297,29 @@ const FEATURE_LABELS = {
   gender: 'Giới tính',
   age: 'Độ tuổi',
   balance: 'Số dư tài khoản',
-  monthly_ir: 'Thu nhập hàng tháng',
+  monthly_ir: 'Mức thu nhập tháng',
   tenure_ye: 'Số năm gắn bó',
-  married: 'Tình trạng hôn nhân',
+  married: 'Hôn nhân',
   nums_card: 'Số lượng thẻ',
   nums_service: 'Số lượng dịch vụ',
   active_member: 'Trạng thái hoạt động',
   engagement_score: 'Điểm tương tác',
   risk_score: 'Hệ số rủi ro',
-  customer_segment: 'Phân khúc khách hàng',
+  customer_segment: 'Phân khúc KH',
   loyalty_level: 'Hạng trung thành',
   digital_behavior: 'Hành vi số'
 };
 
 // Bản đồ tên thân thiện cho OHE features (ColumnTransformer output)
 const SHAP_OHE_LABELS = {
-  'customer_segment_Mass': 'Segment: Mass',
-  'customer_segment_Emerging': 'Segment: Emerging',
-  'customer_segment_Priority': 'Segment: Priority',
-  'customer_segment_Affluent': 'Segment: Affluent',
-  'gender_male': 'Gender: Male',
-  'gender_female': 'Gender: Female',
-  'digital_behavior_offline': 'Behavior: Offline',
-  'digital_behavior_mobile': 'Behavior: Mobile'
+  'customer_segment_Mass': 'Phân khúc: Phổ thông',
+  'customer_segment_Emerging': 'Phân khúc: Tiềm năng',
+  'customer_segment_Priority': 'Phân khúc: Ưu tiên',
+  'customer_segment_Affluent': 'Phân khúc: Thượng lưu',
+  'gender_male': 'Giới tính: Nam',
+  'gender_female': 'Giới tính: Nữ',
+  'digital_behavior_offline': 'Hành vi: Offline',
+  'digital_behavior_mobile': 'Hành vi: Mobile'
 };
 
 /**
@@ -320,14 +328,25 @@ const SHAP_OHE_LABELS = {
  *         "cat__customer_segment_Mass" → "Phân khúc Mass"
  */
 function cleanFeatureName(rawFeature) {
-  // Strip prefix num__ hoặc cat__
+  if (!rawFeature) return 'N/A';
+  // Strip prefix num__ hoặc cat__ từ ColumnTransformer
   let clean = rawFeature.replace(/^num__/, '').replace(/^cat__/, '');
-  // Tra FEATURE_LABELS trước (tên gốc)
+  
+  // 1. Tra cứu trực tiếp trong FEATURE_LABELS (biến gốc)
   if (FEATURE_LABELS[clean]) return FEATURE_LABELS[clean];
-  // Tra OHE labels (cat features sau OHE)
+  
+  // 2. Tra cứu trong SHAP_OHE_LABELS (biến sau khi One-Hot Encoding)
   if (SHAP_OHE_LABELS[clean]) return SHAP_OHE_LABELS[clean];
-  // Fallback: format tên đẹp hơn (bỏ __ và capitalize)
-  return clean.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  
+  // 3. Xử lý fallback nếu không có mapping: Bỏ gạch dưới và viết hoa chữ cái đầu
+  let final = clean.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  
+  // 4. Hỗ trợ dịch nhanh các prefix phổ biến nếu vẫn chưa khớp
+  final = final.replace(/^Customer Segment/i, 'Phân khúc')
+               .replace(/^Gender/i, 'Giới tính')
+               .replace(/^Digital Behavior/i, 'Hành vi số');
+               
+  return final;
 }
 
 const METHOD_LABELS = {
@@ -1005,10 +1024,10 @@ async function loadEDA() {
   if (eda.segment) {
     const segmentLabels = eda.segment.labels.map(l => {
       const ml = l.toLowerCase();
-      if (ml.includes('affluent')) return 'Gia sản (Affluent)';
-      if (ml.includes('emerging')) return 'Tiềm năng (Emerging)';
-      if (ml.includes('mass')) return 'Đại chúng (Mass)';
-      if (ml.includes('priority')) return 'VIP (Priority)';
+      if (ml.includes('affluent')) return 'Thượng lưu';
+      if (ml.includes('emerging')) return 'Tiềm năng';
+      if (ml.includes('mass')) return 'Phổ thông';
+      if (ml.includes('priority')) return 'Ưu tiên';
       return l;
     });
     barChart('chart-segment', segmentLabels, eda.segment.churn_rates);
@@ -1232,7 +1251,7 @@ async function loadEDA() {
         <strong style="color:var(--red-900);font-size:14px;text-transform:uppercase;letter-spacing:0.05em">🚨 Cảnh Báo Ngắn Hạn (Immediate Actions)</strong>
         <ul style="margin:12px 0 0 18px;font-size:13.5px;color:var(--red-800);line-height:1.7">
           <li>Ép buộc chuyển đổi (Digital Adoption) cho KH Offline bằng mã hoàn tiền quầy.</li>
-          <li>Kích hoạt tín dụng vi mô (Micro-loans) cho phân khúc Đại chúng.</li>
+          <li>Kích hoạt tín dụng vi mô (Micro-loans) cho phân khúc Phổ thông.</li>
           <li>Triển khai Gamification (Engagement) cho độ tuổi Gen Z/Gen Y (18-35).</li>
         </ul>
       </div>
@@ -1249,7 +1268,7 @@ async function loadEDA() {
         <div style="position:absolute;top:0;left:0;bottom:0;width:6px;background:var(--green-600)"></div>
         <strong style="color:var(--green-900);font-size:14px;text-transform:uppercase;letter-spacing:0.05em">✅ Tài Sản Vững Chắc (Core Stability)</strong>
         <ul style="margin:12px 0 0 18px;font-size:13.5px;color:var(--green-800);line-height:1.7">
-          <li>Phân khúc Khách hàng Gia sản (Affluent) duy trì độ trung thành rất mạnh.</li>
+          <li>Phân khúc Khách hàng Thượng lưu (Affluent) duy trì độ trung thành rất mạnh.</li>
           <li>Mạng lưới Digital Users đạt hiệu quả bao phủ, tạo rào cản nền tảng (Platform barrier).</li>
           <li>Khách hàng thâm niên duy trì số dư tiền gửi cao giúp cân bằng Cost of Funds.</li>
         </ul>
@@ -1589,11 +1608,11 @@ async function loadModels() {
     prIns.innerHTML = `<strong>💡 Đánh đổi:</strong> Ở điểm tối ưu, mô hình có thể quét (Recall) được lượng lớn khách hàng có rủi ro mà vẫn duy trì tỷ lệ trúng đích (Precision) ở mức chấp nhận được, giúp tối ưu chi phí Marketing.`;
   }
 
-  // 3. Feature Importance
+  // 3. Feature Importance - Chuyển sang hbarChart để hiển thị nhãn dài rõ nét hơn
   if (featImp.combined) {
     const entries = Object.entries(featImp.combined).sort((a, b) => b[1] - a[1]).slice(0, 8);
     const labels = entries.map(e => cleanFeatureName(e[0]));
-    barChart('chart-feat-imp', labels, entries.map(e => e[1] * 100), 'Tầm quan trọng (%)');
+    hbarChart('chart-feat-imp', labels, entries.map(e => e[1] * 100), 'Tầm quan trọng (%)');
   }
   
   const fiIns = document.getElementById('insight-feat-imp');
@@ -2562,10 +2581,10 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
       const active = r.active_member || 0;
       const digital = (r.digital_behavior || 'offline').toLowerCase();
       
-      const loyaltyMap = { 0: 'Bronze', 1: 'Silver', 2: 'Gold', 3: 'Platinum' };
+      const loyaltyMap = { 0: 'Đồng', 1: 'Bạc', 2: 'Vàng', 3: 'Bạch kim', 'Bronze': 'Đồng', 'Silver': 'Bạc', 'Gold': 'Vàng', 'Platinum': 'Bạch kim' };
       const loyaltyRaw = r.loyalty_level;
       const loyaltyDisp = loyaltyMap[loyaltyRaw] || loyaltyRaw || '—';
-      const loyaltyColor = loyaltyDisp === 'Bronze' ? '#92400e' : loyaltyDisp === 'Gold' ? '#854d0e' : loyaltyDisp === 'Platinum' ? '#1e3a8a' : '#1e293b';
+      const loyaltyColor = (loyaltyDisp === 'Đồng' || loyaltyDisp === 'Bronze') ? '#92400e' : (loyaltyDisp === 'Vàng' || loyaltyDisp === 'Gold') ? '#854d0e' : (loyaltyDisp === 'Bạch kim' || loyaltyDisp === 'Platinum') ? '#1e3a8a' : '#1e293b';
       
       let riskScore = 0;
       if (age >= 18 && age <= 30) riskScore += 20;
@@ -2582,7 +2601,7 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
           <td style="padding:12px;font-weight:600;color:#1e293b">${r.full_name || 'Khách hàng'}</td>
           <td style="padding:12px;text-align:center">${age}</td>
           <td style="padding:12px;text-align:center">${(r.gender||'').toLowerCase().includes('female') || (r.gender||'').includes('nữ') ? '👩' : '👨'}</td>
-          <td style="padding:12px;text-align:center"><span class="badge-pro info" style="font-size:10px">${r.customer_segment || '—'}</span></td>
+          <td style="padding:12px;text-align:center"><span class="badge-pro info" style="font-size:10px">${(r.customer_segment === 'Mass' ? 'Phổ thông' : r.customer_segment === 'Affluent' ? 'Thượng lưu' : r.customer_segment === 'Priority' ? 'Ưu tiên' : r.customer_segment === 'Emerging' ? 'Tiềm năng' : r.customer_segment) || '—'}</span></td>
           <td style="padding:12px;text-align:center">
             <span style="color:${loyaltyColor};font-weight:700">${loyaltyDisp}</span>
           </td>
