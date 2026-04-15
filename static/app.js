@@ -70,10 +70,32 @@ if (elAct) elAct.addEventListener('change', applyGlobalFilters);
 // ══════════════════════════════════════════════════════════
 const COLORS = ['#1a56db','#e02424','#057a55','#c27803','#7e3af2','#0e9f6e','#ff5a1f','#3f83f8'];
 
+function fmtVndCompact(v) {
+  const n = Number(v || 0);
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return `${(n / 1e9).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Tỷ ₫`;
+  if (abs >= 1e6) return `${Math.round(n / 1e6).toLocaleString('vi-VN')} Triệu ₫`;
+  if (abs >= 1e3) return `${Math.round(n / 1e3).toLocaleString('vi-VN')} Nghìn ₫`;
+  return `${Math.round(n).toLocaleString('vi-VN')} ₫`;
+}
+
+function fmtVndCompactFromMillion(vMillion) {
+  return fmtVndCompact(Number(vMillion || 0) * 1e6);
+}
+
+function wrapTickLabel(label) {
+  const s = String(label ?? '');
+  if (s.length > 16 && s.includes(' ')) return s.split(' ');
+  return s;
+}
+
 function barChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
   const ctx = document.getElementById(id);
   if (!ctx) return;
   if (ctx._chart) ctx._chart.destroy();
+  const isPct = label.includes('%');
+  const showValues = isPct ? labels.length <= 20 : labels.length <= 12;
+  const dense = labels.length > (isPct ? 12 : 8);
   ctx._chart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -82,24 +104,58 @@ function barChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { callback: v => label.includes('%') ? v + '%' : v } } }
+      layout: { padding: { top: showValues ? 30 : 12 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const v = ctx.parsed?.y;
+              if (isPct) return `${ctx.dataset.label}: ${Number(v || 0).toFixed(1)}%`;
+              return `${ctx.dataset.label}: ${Number(v || 0).toLocaleString('vi-VN')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            autoSkip: dense,
+            maxTicksLimit: dense ? 8 : undefined,
+            maxRotation: 0,
+            minRotation: 0,
+            callback: function(value) {
+              return wrapTickLabel(this.getLabelForValue(value));
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grace: isPct ? '20%' : '15%',
+          ticks: { callback: v => isPct ? `${Number(v).toFixed(1)}%` : Number(v).toLocaleString('vi-VN') }
+        }
+      }
     },
     plugins: [{
       id: 'customDataLabels',
       afterDatasetsDraw(chart) {
+        if (!showValues) return;
         const { ctx, data } = chart;
+        const { chartArea } = chart;
         chart.getDatasetMeta(0).data.forEach((bar, index) => {
           const val = data.datasets[0].data[index];
-          const isPct = label.includes('%');
-          let text = isPct ? Number(val).toFixed(1) : Number(val).toLocaleString();
+          if (!val) return;
+          let text = isPct ? Number(val).toFixed(1) : Number(val).toLocaleString('vi-VN');
           if (isPct && val > 0 && val < 0.1) text = Number(val).toFixed(2);
           if (isPct) text += '%';
           ctx.save();
-          ctx.font = 'bold 12px Inter';
+          ctx.font = `bold ${dense ? 10 : 12}px Inter`;
           ctx.fillStyle = '#475569';
           ctx.textAlign = 'center';
-          ctx.fillText(text, bar.x, bar.y - 8);
+          ctx.textBaseline = 'bottom';
+          const lift = dense ? 14 : 18;
+          const y = Math.max(bar.y - lift, chartArea.top + 8);
+          ctx.fillText(text, bar.x, y);
           ctx.restore();
         });
       }
@@ -111,6 +167,9 @@ function hbarChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
   const ctx = document.getElementById(id);
   if (!ctx) return;
   if (ctx._chart) ctx._chart.destroy();
+  const isPct = label.includes('%');
+  const showValues = isPct ? labels.length <= 20 : labels.length <= 14;
+  const dense = labels.length > (isPct ? 14 : 10);
   ctx._chart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -120,25 +179,55 @@ function hbarChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
     options: {
       indexAxis: 'y',
       responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true, ticks: { callback: v => label.includes('%') ? v + '%' : v } } }
+      layout: { padding: { right: showValues ? 18 : 10 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const v = ctx.parsed?.x;
+              if (isPct) return `${ctx.dataset.label}: ${Number(v || 0).toFixed(1)}%`;
+              return `${ctx.dataset.label}: ${Number(v || 0).toLocaleString('vi-VN')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            autoSkip: dense,
+            maxTicksLimit: dense ? 12 : undefined,
+            callback: function(value) {
+              return wrapTickLabel(this.getLabelForValue(value));
+            }
+          }
+        },
+        x: {
+          beginAtZero: true,
+          grace: isPct ? '20%' : '15%',
+          ticks: { callback: v => isPct ? `${Number(v).toFixed(1)}%` : Number(v).toLocaleString('vi-VN') }
+        }
+      }
     },
     plugins: [{
       id: 'customDataLabelsH',
       afterDatasetsDraw(chart) {
+        if (!showValues) return;
         const { ctx, data } = chart;
+        const { chartArea } = chart;
         chart.getDatasetMeta(0).data.forEach((bar, index) => {
           const val = data.datasets[0].data[index];
-          const isPct = label.includes('%');
-          let text = isPct ? Number(val).toFixed(1) : Number(val).toLocaleString();
+          if (!val) return;
+          let text = isPct ? Number(val).toFixed(1) : Number(val).toLocaleString('vi-VN');
           if (isPct && val > 0 && val < 0.1) text = Number(val).toFixed(2);
           if (isPct) text += '%';
           ctx.save();
-          ctx.font = 'bold 12px Inter';
+          ctx.font = `bold ${dense ? 10 : 12}px Inter`;
           ctx.fillStyle = '#475569';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText(text, bar.x + 8, bar.y);
+          const x = Math.min(bar.x + 10, chartArea.right - 6);
+          ctx.fillText(text, x, bar.y);
           ctx.restore();
         });
       }
@@ -153,7 +242,7 @@ function lineChart(id, labels, datasets) {
   ctx._chart = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
-    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
   });
 }
 
@@ -164,7 +253,17 @@ function doughnutChart(id, labels, data) {
   ctx._chart = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data, backgroundColor: COLORS }] },
-    options: { responsive: true, plugins: { legend: { position: 'right' } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 10, padding: 12, font: { size: 11 } }
+        }
+      }
+    }
   });
 }
 
@@ -629,7 +728,7 @@ async function loadOverview() {
         <div style="padding:14px;background:#fef2f2;border-radius:8px">
           <strong style="color:#991b1b">⚠️ Tài sản rủi ro (At-Risk Balance)</strong>
           <div style="font-size:13px;margin-top:8px">
-            • Tổng số dư nhóm Churn: <strong style="color:#dc2626">${(roi.total_balance_at_risk_m || 0).toLocaleString()}M ${roi.currency || 'VNĐ'}</strong><br>
+            • Tổng số dư nhóm Churn: <strong style="color:#dc2626">${fmtVndCompactFromMillion(roi.total_balance_at_risk_m || 0)}</strong><br>
             • Đánh giá: Mức độ tổn thương vốn CASA cao.<br>
             • Lưu ý: Cần can thiệp ngay vào nhóm 20% KH đóng góp 80% số dư này.
           </div>
@@ -638,7 +737,7 @@ async function loadOverview() {
         <div style="padding:14px;background:#ecfdf5;border-radius:8px">
           <strong style="color:#065f46">✅ Hiệu quả Dự báo & Tiết kiệm</strong>
           <div style="font-size:13px;margin-top:8px">
-            • Khả năng cứu vãn dự kiến: <strong style="color:#059669">${(roi.est_savings_m || 0).toLocaleString()}M ${roi.currency || 'VNĐ'}</strong><br>
+            • Khả năng cứu vãn dự kiến: <strong style="color:#059669">${fmtVndCompactFromMillion(roi.est_savings_m || 0)}</strong><br>
             • Tỉ lệ giữ chân giả định: ${roi.retention_success_rate || '30%'}<br>
             • Chiến lược: Sử dụng Recall (${ovRes.best_model?.recall || 0}) làm trọng tâm.
           </div>
@@ -818,7 +917,7 @@ function setInsight(id, text, labels = [], values = [], type = 'rate') {
     values.forEach((v, i) => { if(v === maxVal) maxLabels.push(labels[i]); if(v === minVal) minLabels.push(labels[i]); });
     el.innerHTML = `💡 <strong>Đáng chú ý:</strong> Nhóm <strong>${maxLabels.join('/')}</strong> có tỉ lệ rời bỏ cao nhất (${maxVal}%). Ngược lại, nhóm <strong>${minLabels.join('/')}</strong> an toàn nhất (${minVal}%).`;
   } else if (type === 'balance') {
-    el.innerHTML = `💡 Nhóm khách hàng rời đi có số dư bình quân là <strong>${values[0]}M</strong>, còn nhóm ở lại là <strong>${values[1]}M</strong>.`;
+    el.innerHTML = `💡 Nhóm khách hàng rời đi có số dư bình quân là <strong>${fmtVndCompactFromMillion(values[0])}</strong>, còn nhóm ở lại là <strong>${fmtVndCompactFromMillion(values[1])}</strong>.`;
   } else if (type === 'corr') {
     const sorted = [...values].sort((a,b)=>b-a);
     const topV = sorted[0];
@@ -848,15 +947,15 @@ async function loadEDA() {
         data: {
           labels: eda.age.labels,
           datasets: [
-            { label: 'Ổn định (Non-Churn)', data: noChurnCounts, backgroundColor: '#10b981', borderRadius: 4 },
-            { label: 'Rời bỏ (Churn)', data: churnCounts, backgroundColor: '#ef4444', borderRadius: 4 }
+            { label: 'Ổn định (Non-Churn)', data: noChurnCounts, backgroundColor: '#10b981', borderRadius: 6, maxBarThickness: 46 },
+            { label: 'Rời bỏ (Churn)', data: churnCounts, backgroundColor: '#ef4444', borderRadius: 6, maxBarThickness: 46 }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'top' },
+            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, padding: 16 } },
             tooltip: {
               callbacks: {
                 label: function(ctx) {
@@ -876,10 +975,13 @@ async function loadEDA() {
               }
             }
           },
+          interaction: { mode: 'index', intersect: false },
           scales: {
+            x: { stacked: true, grid: { display: false } },
             y: {
+              stacked: true,
               beginAtZero: true,
-              ticks: { callback: v => v.toLocaleString('vi-VN') }
+              ticks: { callback: v => Number(v).toLocaleString('vi-VN') }
             }
           }
         }
@@ -937,7 +1039,7 @@ async function loadEDA() {
       const edges = eda.balance.bin_edges;
       const labels = [];
       for (let i = 0; i < edges.length - 1; i++) {
-        labels.push(Math.round((edges[i] + edges[i+1]) / 2 / 1e6) + 'M'); // Label as millions
+        labels.push(Math.round((edges[i] + edges[i+1]) / 2 / 1e6) + ' Triệu');
       }
       
       // Normalize histograms to plot density curve
@@ -1065,7 +1167,7 @@ async function loadEDA() {
            Dựa trên dữ liệu thực tế: <br>
            • <strong>Biến động Churn:</strong> Nhóm rủi ro nhất có tỉ lệ rời bỏ trung bình <strong>${Math.max(...(eda.age?.churn_rates || [0])).toFixed(1)}%</strong>.<br>
            • <strong>Đặc điểm Digital:</strong> Khách hàng Offline thường là điểm yếu chí mạng của hệ thống retention.<br>
-           • <strong>Asset-light:</strong> Số dư trung bình của nhóm Churn chỉ đạt <strong>${vChurnBal}M</strong> VNĐ, phản ánh cam kết tài chính thấp.
+           • <strong>Asset-light:</strong> Số dư trung bình của nhóm Churn chỉ đạt <strong>${vChurnBal} Triệu</strong> VNĐ, phản ánh cam kết tài chính thấp.
         </div>
       </div>
       <div style="padding:20px; background:var(--green-50); border-radius:15px; border-top:1px solid var(--green-100); border-right:1px solid var(--green-100); border-bottom:1px solid var(--green-100); border-left:6px solid var(--green-600); box-shadow:var(--shadow-sm)">
@@ -1074,7 +1176,7 @@ async function loadEDA() {
            Cơ cấu khách hàng trung thành: <br>
            • <strong>Sự trưởng thành:</strong> Nhóm ổn định tập trung ở các khách hàng có Tenure cao và tuổi trung niên.<br>
            • <strong>Engagement:</strong> Thành viên hoạt động tích cực có rủi ro thấp hơn gấp nhiều lần.<br>
-           • <strong>Deep Asset:</strong> Số dư trung bình nhóm ổn định duy trì ở mức <strong>${vNoChurnBal}M</strong> VNĐ, tạo nguồn vốn CASA bền vững.
+           • <strong>Deep Asset:</strong> Số dư trung bình nhóm ổn định duy trì ở mức <strong>${vNoChurnBal} Triệu</strong> VNĐ, tạo nguồn vốn CASA bền vững.
         </div>
       </div>
     </div>
@@ -1102,8 +1204,8 @@ async function loadEDA() {
       <tbody>
         <tr style="border-bottom:1px solid #e5e7eb">
           <td style="padding:10px"><strong>Số dư TB</strong></td>
-          <td style="padding:10px;text-align:center;color:#dc2626">${vChurnBal}M</td>
-          <td style="padding:10px;text-align:center;color:#059669">${vNoChurnBal}M</td>
+          <td style="padding:10px;text-align:center;color:#dc2626">${vChurnBal} Triệu</td>
+          <td style="padding:10px;text-align:center;color:#059669">${vNoChurnBal} Triệu</td>
           <td style="padding:10px;text-align:center">${vRatio}x</td>
         </tr>
         <tr style="border-bottom:1px solid #e5e7eb">
@@ -1986,6 +2088,10 @@ async function loadClusters() {
   if (kBadge) {
     kBadge.textContent = `K-Means · k=${profiles.length} Phân đoạn (Segments)`;
   }
+  const kChoiceBadge = document.getElementById('k-choice-badge');
+  if (kChoiceBadge) {
+    kChoiceBadge.textContent = `K lựa chọn: ${profiles.length}`;
+  }
 
   // Elbow chart
   if (elbowData.k_range) {
@@ -2031,82 +2137,153 @@ async function loadClusters() {
   );
   
   const distIns = document.getElementById('insight-cluster-dist');
-  if (distIns) {
+  const radarIns = document.getElementById('insight-radar');
+  if (radarIns) {
     const major = profiles.reduce((prev, current) => (prev.count > current.count) ? prev : current);
-    distIns.innerHTML = `<strong>💡 Cơ cấu:</strong> Phân khúc <strong>${major.cluster_name}</strong> đang chiếm tỷ trọng lớn nhất. Việc nhận diện rõ quy mô từng cụm giúp Ngân hàng đo lường chính xác ngân sách cần thiết cho từng kịch bản Retention.`;
+    const highestRisk = profiles.reduce((prev, current) => ((prev.risk_mean || 0) > (current.risk_mean || 0) ? prev : current));
+    const highestEngagement = profiles.reduce((prev, current) => ((prev.engagement_mean || 0) > (current.engagement_mean || 0) ? prev : current));
+    const highestBalance = profiles.reduce((prev, current) => ((prev.balance_mean || 0) > (current.balance_mean || 0) ? prev : current));
+    const oldestGroup = profiles.reduce((prev, current) => ((prev.age_mean || 0) > (current.age_mean || 0) ? prev : current));
+
+    radarIns.innerHTML = `
+      <div style="display:grid;gap:12px;">
+        <div style="font-size:13px;color:#334155;line-height:1.8">
+          <strong>So sánh hình dạng radar:</strong> Biểu đồ so sánh 4 trụ cột của từng cụm, giúp nhận diện nhanh nơi cần ưu tiên: <em>rủi ro</em>, <em>số dư</em>, <em>gắn kết</em> và <em>độ tuổi</em>.
+        </div>
+        <ul style="margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.8">
+          <li><strong>${major.cluster_name}</strong> là cụm lớn nhất (tác động mạnh nhất đến phân bổ nguồn lực).</li>
+          <li><strong>${highestRisk.cluster_name}</strong> có <strong>rủi ro cao nhất</strong> → ưu tiên can thiệp sớm.</li>
+          <li><strong>${highestEngagement.cluster_name}</strong> có <strong>gắn kết tốt nhất</strong> → phù hợp cross-sell/upsell.</li>
+          <li><strong>${highestBalance.cluster_name}</strong> có <strong>số dư cao nhất</strong> → nhóm LTV tiềm năng lớn.</li>
+          <li><strong>${oldestGroup.cluster_name}</strong> có <strong>tuổi TB cao nhất</strong> → ưu tiên hành trình chăm sóc dễ hiểu.</li>
+        </ul>
+        <div style="font-size:12px;color:#64748b;line-height:1.6">
+          Lưu ý: Radar dùng giá trị đã chuẩn hóa theo từng chỉ tiêu để so sánh hình thái đặc trưng, không phải % thực tế của từng khách hàng.
+        </div>
+      </div>
+    `;
+  }
+
+  if (distIns) {
+    const total = profiles.reduce((s, p) => s + (p.count || 0), 0) || 1;
+    const sorted = [...profiles].sort((a, b) => (b.count || 0) - (a.count || 0));
+    const top1 = sorted[0];
+    const top2 = sorted[1];
+    const top3 = sorted[2];
+    const pct = (x) => ((Number(x || 0) / total) * 100).toFixed(1);
+    const cumTop2 = ((Number(top1?.count || 0) + Number(top2?.count || 0)) / total) * 100;
+    const cumTop3 = ((Number(top1?.count || 0) + Number(top2?.count || 0) + Number(top3?.count || 0)) / total) * 100;
+    const shares = sorted.map(p => (Number(p.count || 0) / total));
+    const hhi = shares.reduce((s, v) => s + v * v, 0);
+
+    const churnedEst = (p) => {
+      const cr = (p?.churn_rate_pct !== undefined && p?.churn_rate_pct !== null) ? Number(p.churn_rate_pct) : churnPct(p?.churn_rate || 0);
+      return Math.round(Number(p?.count || 0) * (cr / 100));
+    };
+    const churnedTotal = sorted.reduce((s, p) => s + churnedEst(p), 0) || 1;
+    const topChurn = [...sorted].sort((a, b) => churnedEst(b) - churnedEst(a))[0];
+
+    const moneyCompact = (v) => {
+      return fmtVndCompact(v);
+    };
+    const balanceRiskEst = (p) => churnedEst(p) * Number(p?.balance_mean || 0);
+    const topBalanceRisk = [...sorted].sort((a, b) => balanceRiskEst(b) - balanceRiskEst(a))[0];
+    const concentrationLevel = hhi >= 0.35 ? 'Cao' : hhi >= 0.28 ? 'Trung bình' : 'Thấp';
+    const nameShort = (p) => {
+      if (!p) return '—';
+      const id = (p.cluster !== undefined && p.cluster !== null) ? `C${p.cluster}` : 'C?';
+      const nm = p.cluster_name ? String(p.cluster_name) : '';
+      return nm ? `${id} (${nm})` : id;
+    };
+
+    distIns.innerHTML = `
+      <div style="display:grid;gap:12px">
+        <div style="font-size:13px;color:#334155;line-height:1.8">
+          Biểu đồ tròn cho biết <strong>mỗi cụm chiếm bao nhiêu % khách hàng</strong>. “2 cụm” và “3 cụm” ở đây là <strong>cộng dồn theo quy mô</strong> (lấy 2/3 cụm có nhiều khách nhất).
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr;gap:10px">
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span class="badge-pro info">Cụm lớn nhất: ${pct(top1?.count)}% (${nameShort(top1)})</span>
+            <span class="badge-pro info">2 cụm lớn nhất: ${cumTop2.toFixed(1)}% (${nameShort(top1)} + ${nameShort(top2)})</span>
+            <span class="badge-pro info">3 cụm lớn nhất: ${cumTop3.toFixed(1)}% (${nameShort(top1)} + ${nameShort(top2)} + ${nameShort(top3)})</span>
+            <span class="badge-pro warning">Mức độ tập trung: ${concentrationLevel}</span>
+          </div>
+        </div>
+
+        <ul style="margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.85">
+          <li><strong>${top1?.cluster_name || '—'}</strong>: ${(top1?.count || 0).toLocaleString('vi-VN')} KH (${pct(top1?.count)}%).</li>
+          ${top2 ? `<li><strong>${top2.cluster_name}</strong>: ${(top2.count || 0).toLocaleString('vi-VN')} KH (${pct(top2.count)}%).</li>` : ''}
+          ${top3 ? `<li><strong>${top3.cluster_name}</strong>: ${(top3.count || 0).toLocaleString('vi-VN')} KH (${pct(top3.count)}%).</li>` : ''}
+        </ul>
+
+        <div style="display:grid;gap:10px">
+          <div style="font-size:13px;color:#334155;line-height:1.8">
+            <strong>Góc nhìn ưu tiên (quy mô × churn):</strong>
+          </div>
+          <ul style="margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.85">
+            <li><strong>${topChurn?.cluster_name || '—'}</strong> ước tính có số KH rời bỏ nhiều nhất: <strong>${churnedEst(topChurn).toLocaleString('vi-VN')}</strong> KH (≈ ${(churnedEst(topChurn) / churnedTotal * 100).toFixed(1)}% churn-est toàn bộ).</li>
+            <li><strong>${topBalanceRisk?.cluster_name || '—'}</strong> có “số dư rủi ro” xấp xỉ cao nhất (ước tính): <strong>${moneyCompact(balanceRiskEst(topBalanceRisk))}</strong>.</li>
+          </ul>
+          <div style="font-size:12px;color:#64748b;line-height:1.6">
+            Ghi chú: “churn-est” ≈ count × churn_rate; “số dư rủi ro” ≈ churn-est × balance_mean (xấp xỉ để ưu tiên nguồn lực, không phải con số kế toán).
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   // Cluster cards
   const grid = document.getElementById('cluster-cards');
-  grid.innerHTML = profiles.map((p, i) => {
-    // Dynamic Auto-Labeling theme
-    const styleTheme = getThemeForCluster(p);
-    const cr = (p.churn_rate_pct !== undefined && p.churn_rate_pct !== null) ? Number(p.churn_rate_pct) : churnPct(p.churn_rate);
-    
-    // Support robust key parsing (handles both numeric index and "Cum X: Name" format)
-    const strat = strategies[p.cluster.toString()] || {};
-    
-    const uuDai = (strat.uu_dai || []).slice(0, 3).map(u => `
-      <div style="font-size:13px; color:var(--gray-700); display:flex; align-items:flex-start; gap:8px; margin-top:8px; background:white; padding:8px 12px; border-radius:8px; border:1px solid var(--border)">
-        <span>🎁</span> <span>${u}</span>
-      </div>`).join('');
-    
-    // Inject real-time dynamic statistics warning
-    let dynamicCanhBaoHtml = '';
-    if (cr > 20) {
-      dynamicCanhBaoHtml = `<div style="margin-top:12px; font-size:12px; font-weight:bold; color:var(--danger); padding:8px; background:var(--red-50); border-radius:6px; border:1px solid var(--red-100)">⚠️ KHẨN CẤP: Churn rate ${cr.toFixed(1)}% — Cần ưu tiên can thiệp.</div>`;
-    } else {
-      dynamicCanhBaoHtml = `<div style="margin-top:12px; font-size:12px; font-weight:bold; color:var(--success); padding:8px; background:var(--green-50); border-radius:6px; border:1px solid var(--green-100)">✅ Ổn định: Churn rate ${cr.toFixed(1)}% — Tiếp tục duy trì.</div>`;
-    }
-    
-    return `
-      <div style="background:white; border-radius:16px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 20px rgba(0,0,0,0.03); position:relative; overflow:hidden">
-        <div style="position:absolute; top:0; left:0; right:0; height:6px; background:${styleTheme.border}"></div>
-        
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px">
-           <div>
-             <span style="font-size:12px; font-weight:800; color:var(--gray-400); text-transform:uppercase; letter-spacing:1px">Phân cụm số ${p.cluster}</span>
-             <h4 style="margin:4px 0 0 0; font-size:18px; color:var(--gray-900); font-weight:800; line-height:1.4">${styleTheme.icon} ${p.cluster_name}</h4>
-           </div>
-        </div>
+  if (grid) {
+    grid.classList.add('cluster-grid');
+    grid.innerHTML = profiles.map((p) => {
+      const styleTheme = getThemeForCluster(p);
+      const cr = (p.churn_rate_pct !== undefined && p.churn_rate_pct !== null) ? Number(p.churn_rate_pct) : churnPct(p.churn_rate);
+      const strat = strategies[p.cluster.toString()] || {};
+      const churnTone = cr > 20 ? 'danger' : cr > 10 ? 'warning' : 'success';
+      const churnNote = cr > 20 ? `KHẨN CẤP • Churn ${cr.toFixed(1)}%` : cr > 10 ? `Theo dõi • Churn ${cr.toFixed(1)}%` : `Ổn định • Churn ${cr.toFixed(1)}%`;
+      const uu = (strat.uu_dai || []).slice(0, 3);
+      const hasDetail = Boolean(strat.chien_luoc || uu.length);
 
-        <div style="background:var(--surface-2); border-radius:12px; padding:16px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:16px">
-           <div>
-             <div style="font-size:11px; color:var(--gray-500); text-transform:uppercase; font-weight:700; margin-bottom:4px">Số lượng KH</div>
-             <div style="font-size:20px; font-weight:900; color:var(--gray-900)">${(p.count || 0).toLocaleString()} <span style="font-size:13px; font-weight:500; color:var(--gray-500)">khách</span></div>
-           </div>
-           <div>
-             <div style="font-size:11px; color:var(--gray-500); text-transform:uppercase; font-weight:700; margin-bottom:4px">Tỷ lệ Churn</div>
-             <div style="font-size:20px; font-weight:900; color:${cr > 15 ? 'var(--danger)' : 'var(--success)'}">${cr.toFixed(1)}%</div>
-           </div>
-           <div style="grid-column: span 2">
-             <div style="font-size:11px; color:var(--gray-500); text-transform:uppercase; font-weight:700; margin-bottom:4px">Trung bình Số dư (Balance)</div>
-             <div style="font-size:20px; font-weight:900; color:var(--blue-700)">${Math.round((p.balance_mean || 0) / 1e6).toLocaleString()} Triệu VNĐ</div>
-           </div>
-        </div>
+      return `
+        <div class="cluster-card" style="border-top-color:${styleTheme.border}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
+            <div style="min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span class="badge-pro info">Cụm ${p.cluster}</span>
+                <span class="badge-pro ${churnTone}">${churnNote}</span>
+              </div>
+              <div class="cluster-name" style="margin-bottom:0;display:flex;align-items:flex-start;gap:8px;min-width:0">
+                <span style="flex-shrink:0">${styleTheme.icon}</span>
+                <span style="min-width:0;word-break:break-word">${p.cluster_name}</span>
+              </div>
+            </div>
+          </div>
 
-        <div style="margin-bottom:16px">
-           <div style="font-size:13px; font-weight:800; color:var(--gray-800); margin-bottom:8px; display:flex; align-items:center; gap:6px">
-             <span>🎯</span> Định hướng Chăm sóc sơ bộ:
-           </div>
-           <div style="font-size:14px; color:var(--gray-700); line-height:1.5; background:${styleTheme.bg}; color:${styleTheme.text}; padding:10px 14px; border-radius:8px">
-              ${strat.chien_luoc || 'Tập trung duy trì tương tác định kỳ qua Email và SMS.'}
-           </div>
-           ${dynamicCanhBaoHtml}
-        </div>
+          <div class="cluster-stats" style="margin-bottom:${hasDetail ? '10px' : '0'}">
+            <span class="cluster-stat"><strong>${(p.count || 0).toLocaleString('vi-VN')}</strong> KH</span>
+            <span class="cluster-stat"><strong>${fmtVndCompact(p.balance_mean || 0)}</strong> TB số dư</span>
+            <span class="cluster-stat"><strong>${Math.round(Number(p.engagement_mean || 0))}</strong>/100 gắn kết</span>
+            <span class="cluster-stat"><strong>${Number(p.age_mean || 0).toFixed(1)}</strong> tuổi TB</span>
+          </div>
 
-        <div style="border-top:1px dashed var(--border); padding-top:16px; margin-top:auto">
-           <div style="font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; margin-bottom:8px">Đề xuất Gói Ưu đãi Kích hoạt:</div>
-           ${uuDai}
+          ${hasDetail ? `
+            <details class="cluster-details">
+              <summary>Chiến lược & ưu đãi</summary>
+              ${strat.chien_luoc ? `<div class="cluster-detail-box">${strat.chien_luoc}</div>` : ''}
+              ${uu.length ? `<ul class="cluster-uu-dai" style="margin-top:8px">${uu.map(u => `<li>${u}</li>`).join('')}</ul>` : ''}
+            </details>
+          ` : ''}
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }
 
   // Cluster select
   const sel = document.getElementById('cluster-select');
   sel.innerHTML = profiles.map(p =>
-    `<option value="${p.cluster}">Cum ${p.cluster}: ${p.cluster_name}</option>`
+    `<option value="${p.cluster}">Cụm ${p.cluster}: ${p.cluster_name}</option>`
   ).join('');
   sel.addEventListener('change', () => {
     const elS = document.getElementById('filter-segment');
@@ -2234,7 +2411,7 @@ async function loadClusters() {
     if (priorityClusters.length > 0) {
       priorityContainer.innerHTML = priorityClusters.map(p => 
         `<div style="margin-bottom:12px;padding:10px;background:#fff;border-radius:6px;border-left:4px solid #dc2626">
-          <strong>Cum ${p.cluster} - ${p.cluster_name}</strong>: 
+          <strong>Cụm ${p.cluster} - ${p.cluster_name}</strong>: 
           ${(p.count || 0).toLocaleString()} KH, churn ${(((p.churn_rate_pct !== undefined && p.churn_rate_pct !== null) ? Number(p.churn_rate_pct) : churnPct(p.churn_rate)).toFixed(1))}%, 
           engagement TB ${Math.round(p.engagement_mean)}/100
           <div style="font-size:12px;color:#6b7280;margin-top:4px">
@@ -2286,32 +2463,35 @@ async function loadClusters() {
   const churnIcons = ['💎','⭐','👴','🚨']; // Map to VIP, Active, Senior, Risk
 
   document.getElementById('cluster-roi').innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
+    <div style="display:flex;flex-direction:column;flex:1;justify-content:space-between;min-height:280px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;align-items:stretch;grid-auto-rows:1fr">
       ${clusterROI.map(c => {
         const crPct = (c.churn_rate_pct !== undefined && c.churn_rate_pct !== null) ? Number(c.churn_rate_pct) : churnPct(c.churn_rate);
         const clr = crPct > 20 ? 'var(--red-500)' : crPct > 5 ? 'var(--amber-500)' : 'var(--green-500)';
         return `
-        <div style="background:var(--surface-2);border:1px solid var(--border);border-left:3px solid ${clr};border-radius:8px;padding:12px">
-          <div style="font-size:11.5px;font-weight:700;color:var(--gray-700);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;min-height:110px;height:100%;min-width:0;background:var(--surface-2);border:1px solid var(--border);border-left:3px solid ${clr};border-radius:8px;padding:12px">
+          <div style="font-size:11.5px;font-weight:700;color:var(--gray-700);margin-bottom:8px;min-width:0;white-space:normal;overflow:visible;word-break:break-word;line-height:1.35">
             ${churnIcons[c.cluster]||'📌'} C${c.cluster}: ${c.cluster_name}
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-500);margin-bottom:3px">
-            <span>KH rời bỏ:</span><strong>${c.churned.toLocaleString()}</strong>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-500)">
-            <span>Lợi ích ròng:</span><strong style="color:var(--blue-600)">${(c.netSaved/1e6).toFixed(0)}M ₫</strong>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-500);margin-bottom:3px">
+              <span>KH rời bỏ:</span><strong>${c.churned.toLocaleString('vi-VN')}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-500)">
+              <span>Lợi ích ròng:</span><strong style="color:var(--blue-600)">${fmtVndCompact(c.netSaved)}</strong>
+            </div>
           </div>
         </div>`;
       }).join('')}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="background:var(--green-50);border:1px solid var(--green-100);border-radius:8px;padding:12px;text-align:center">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;grid-auto-rows:1fr">
+      <div style="display:flex;flex-direction:column;justify-content:center;min-height:110px;background:var(--green-50);border:1px solid var(--green-100);border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:10px;color:var(--green-700);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:700">Tổng KH cần giữ</div>
-        <div style="font-size:20px;font-weight:800;color:var(--green-700)">${totalChurned.toLocaleString()}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--green-700)">${totalChurned.toLocaleString('vi-VN')}</div>
       </div>
-      <div style="background:var(--blue-50);border:1px solid var(--blue-100);border-radius:8px;padding:12px;text-align:center">
+      <div style="display:flex;flex-direction:column;justify-content:center;min-height:110px;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:10px;color:var(--blue-700);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-weight:700">Tổng tiết kiệm vs. acq.</div>
-        <div style="font-size:20px;font-weight:800;color:var(--blue-700)">${(totalSaved/1e9).toFixed(2)}B ₫</div>
+        <div style="font-size:20px;font-weight:800;color:var(--blue-700)">${fmtVndCompact(totalSaved)}</div>
       </div>
     </div>
   `;
@@ -2401,7 +2581,7 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
           <td style="padding:12px;text-align:center">
             <span style="color:${loyaltyColor};font-weight:700">${loyaltyDisp}</span>
           </td>
-          <td style="padding:12px;text-align:right;font-weight:700">${Math.round(balance / 1e6)}M</td>
+          <td style="padding:12px;text-align:right;font-weight:700">${fmtVndCompact(balance)}</td>
           <td style="padding:12px;text-align:center">${engagement}</td>
           <td style="padding:12px;text-align:center">${active ? '✅' : '❌'}</td>
           <td style="padding:12px;text-align:center">
@@ -2427,10 +2607,40 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
       ? `(Báo động đỏ — K-Means gom nhóm rủi ro rất cao, cần tập trung ngân sách Win-back Campaign vào đây)`
       : `(Mức độ rời bỏ xoay quanh mức trung bình của toàn tập dữ liệu)`;
 
+    const activeCount = rows.filter(r => (r.active_member || 0) === 1).length;
+    const inactiveCount = rows.length - activeCount;
+    const segmentCounts = rows.reduce((acc, r) => {
+      const seg = r.customer_segment || 'Khác';
+      acc[seg] = (acc[seg] || 0) + 1;
+      return acc;
+    }, {});
+    const sortedSegments = Object.entries(segmentCounts).sort((a, b) => b[1] - a[1]);
+    const primarySegment = sortedSegments.length ? sortedSegments[0][0] : 'N/A';
+    const avgBalance = rows.length ? rows.reduce((sum, r) => sum + (r.balance || 0), 0) / rows.length : 0;
+    const avgEngagement = rows.length ? rows.reduce((sum, r) => sum + (r.engagement_score || 0), 0) / rows.length : 0;
+    const loyaltyCounts = rows.reduce((acc, r) => {
+      const key = String(r.loyalty_level || 'Không xác định');
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const sortedLoyalty = Object.entries(loyaltyCounts).sort((a, b) => b[1] - a[1]);
+    const loyaltyLabel = sortedLoyalty.length ? sortedLoyalty[0][0] : 'N/A';
+    const digitalCounts = rows.reduce((acc, r) => {
+      const key = (r.digital_behavior || 'offline').toString().toLowerCase().includes('mobile') ? 'App/Mobile' : 'Offline/Quầy';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const topChannel = Object.entries(digitalCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+
+    const filterInfo = [];
+    if (filterSegment !== 'all') filterInfo.push(`Phân khúc: ${filterSegment}`);
+    if (filterActive !== 'all') filterInfo.push(filterActive === '1' ? 'Chỉ Active' : 'Chỉ Inactive');
+    const filterSummary = filterInfo.length ? filterInfo.join(' · ') : 'Không lọc';
+
     detailContainer.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;margin-bottom:12px">
         <div class="card-pro" style="text-align:center">
-          <div style="font-size:32px;font-weight:900;color:#1e40af">${rows.length.toLocaleString()}</div>
+          <div style="font-size:32px;font-weight:900;color:#1e40af" data-stat="n">${rows.length.toLocaleString('vi-VN')}</div>
           <div style="font-size:12px;color:#64748b;margin-top:5px;text-transform:uppercase;font-weight:700">KH theo bộ lọc</div>
         </div>
         <div class="card-pro" style="text-align:center;position:relative">
@@ -2443,66 +2653,114 @@ function renderClusterCustomers(clusterId, filterSegment = 'all', filterActive =
           <div style="font-size:12px;color:#64748b;margin-top:5px;text-transform:uppercase;font-weight:700">Tuổi TB Cụm</div>
         </div>
         <div class="card-pro" style="text-align:center">
-          <div style="font-size:32px;font-weight:900;color:#10b981">${Math.round((profile.balance_mean || 0) / 1e6)}M</div>
-          <div style="font-size:12px;color:#64748b;margin-top:5px;text-transform:uppercase;font-weight:700">Số dư TB Cụm</div>
+          <div style="font-size:32px;font-weight:900;color:#10b981" data-stat="avgBalance">${fmtVndCompact(avgBalance)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:5px;text-transform:uppercase;font-weight:700">Số dư TB Lọc</div>
         </div>
       </div>
-      <div style="text-align:center;font-size:13px;color:#475569;margin-bottom:32px">
-        💡 <strong>Giải thích điểm dữ liệu:</strong> Tỷ lệ Churn của cụm hiện tại là <strong>${churnPctVal.toFixed(2)}%</strong>. 
-        <span style="color:${churnColor};font-weight:600">${churnInsight}</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:18px;line-height:1.65;color:#334155;font-size:13px">
+          <div style="font-weight:700;margin-bottom:8px">→ Tổng quan nhanh</div>
+          <div><strong data-stat="primarySegment">${primarySegment}</strong> là phân khúc chiếm ưu thế.</div>
+          <div>Khách hàng đang giao dịch chủ yếu qua: <strong data-stat="topChannel">${topChannel}</strong>.</div>
+          <div>Tỷ lệ active hiện tại: <strong data-stat="activeRate">${rows.length ? ((activeCount / rows.length) * 100).toFixed(0) : '0'}%</strong>.</div>
+          <div>Trung bình điểm tương tác: <strong data-stat="avgEngagement">${avgEngagement.toFixed(1)}</strong>, mức <strong data-stat="engLevel">${avgEngagement >= 70 ? 'Cao' : avgEngagement >= 40 ? 'Trung bình' : 'Thấp'}</strong>.</div>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #ffedd5;border-radius:16px;padding:18px;line-height:1.65;color:#92400e;font-size:13px">
+          <div style="font-weight:700;margin-bottom:8px">→ Điểm cần chú ý</div>
+          <div>Số lượng không active: <strong data-stat="inactiveCount">${inactiveCount}</strong> khách, chiếm <strong data-stat="inactiveRate">${rows.length ? ((inactiveCount / rows.length) * 100).toFixed(0) : '0'}%</strong>.</div>
+          <div>Loyalty phổ biến nhất: <strong data-stat="topLoyalty">${loyaltyLabel}</strong>.</div>
+          <div>Mức giữ chân nên ưu tiên nếu churn trên 15% hoặc số dư TB lớn.</div>
+          <div><strong>Filter hiện tại:</strong> ${filterSummary}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#475569;line-height:1.8">
+        <strong>Phân tích sâu:</strong>
+        <ul style="margin:10px 0 0 18px; padding:0; list-style:disc">
+          <li>Nhóm này chứa <strong data-stat="n">${rows.length}</strong> khách hàng theo bộ lọc, trong đó <strong data-stat="primarySegment">${primarySegment}</strong> là phân khúc lớn nhất.</li>
+          <li>Nếu tỷ lệ churn của cụm là <strong>${churnPctVal.toFixed(2)}%</strong>, đây là chỉ số để xác định năng lực giữ chân so với toàn bộ hệ thống.</li>
+          <li>Số dư TB là <strong data-stat="avgBalance">${fmtVndCompact(avgBalance)}</strong>, cho thấy đây là nhóm có giá trị tài chính <strong data-stat="balLevel">${avgBalance >= 100000000 ? 'lớn' : 'vừa phải'}</strong>.</li>
+          <li>Đề xuất hành động: <strong>${churnPctVal > 18 ? 'Ưu tiên chiến dịch cứu churn' : 'Tăng cường cross-sell và giữ chân'}</strong>.</li>
+        </ul>
       </div>
     `;
   }
 
 
   // Draw Charts: Aggregated Histogram Distribution (Methodologically Correct)
-  if (rows.length > 0) {
-    // 1. Khởi tạo Rổ đếm (Bins)
-    const ageBins = { '<25': 0, '25-35': 0, '36-45': 0, '46-55': 0, '56+': 0 };
-    const engBins = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 };
-    const balBins = { '<50M': 0, '50-100M': 0, '100-200M': 0, '>200M': 0 };
+  renderClusterHistograms(clusterId, filterSegment, filterActive);
+}
 
-    // 2. Thuật toán Aggegation: Quét toàn bộ Khách hàng để xếp rổ
-    rows.forEach(r => {
-      const a = r.age || 0;
-      if (a < 25) ageBins['<25']++;
-      else if (a <= 35) ageBins['25-35']++;
-      else if (a <= 45) ageBins['36-45']++;
-      else if (a <= 55) ageBins['46-55']++;
-      else ageBins['56+']++;
+async function renderClusterHistograms(clusterId, filterSegment = 'all', filterActive = 'all') {
+  const qs = new URLSearchParams({
+    cluster: String(clusterId),
+    segment: String(filterSegment || 'all'),
+    active: String(filterActive || 'all')
+  }).toString();
 
-      const e = r.engagement_score || 0;
-      if (e <= 25) engBins['0-25']++;
-      else if (e <= 50) engBins['26-50']++;
-      else if (e <= 75) engBins['51-75']++;
-      else engBins['76-100']++;
+  try {
+    const res = await fetch(`/api/cluster_hist?${qs}`);
+    const data = await res.json();
+    if (!res.ok) return;
 
-      const b = (r.balance || 0) / 1e6;
-      if (b < 50) balBins['<50M']++;
-      else if (b <= 100) balBins['50-100M']++;
-      else if (b <= 200) balBins['100-200M']++;
-      else balBins['>200M']++;
-    });
+    const setStat = (key, val) => {
+      document.querySelectorAll(`[data-stat="${key}"]`).forEach(el => { el.textContent = val; });
+    };
 
-    // 3. Render Histograms
-    barChart('cluster-age-chart', Object.keys(ageBins), Object.values(ageBins), 'Số KH');
-    barChart('cluster-engagement-chart', Object.keys(engBins), Object.values(engBins), 'Số KH');
-    barChart('cluster-balance-chart', Object.keys(balBins), Object.values(balBins), 'Số KH');
+    const n = Number(data.n || 0);
+    if (n) setStat('n', n.toLocaleString('vi-VN'));
+    if (data.top_segment) setStat('primarySegment', String(data.top_segment));
+    if (data.top_channel) {
+      const ch = String(data.top_channel).toLowerCase();
+      setStat('topChannel', ch.includes('mobile') ? 'App/Mobile' : 'Offline/Quầy');
+    }
+    if (data.top_loyalty !== undefined && data.top_loyalty !== null && data.top_loyalty !== '') {
+      const loyaltyMap = { '0': 'Bronze', '1': 'Silver', '2': 'Gold', '3': 'Platinum' };
+      const lk = String(data.top_loyalty);
+      setStat('topLoyalty', loyaltyMap[lk] || lk);
+    }
 
-    // 4. Định dạng lại Chart chuẩn Histogram (cột to, sát vách)
+    const ar = (data.active_rate_pct !== undefined && data.active_rate_pct !== null) ? Number(data.active_rate_pct) : null;
+    const ir = (data.inactive_rate_pct !== undefined && data.inactive_rate_pct !== null) ? Number(data.inactive_rate_pct) : null;
+    const ic = (data.inactive_count !== undefined && data.inactive_count !== null) ? Number(data.inactive_count) : null;
+    if (ar !== null && isFinite(ar)) setStat('activeRate', `${ar.toFixed(0)}%`);
+    if (ir !== null && isFinite(ir)) setStat('inactiveRate', `${ir.toFixed(0)}%`);
+    if (ic !== null && isFinite(ic)) setStat('inactiveCount', ic.toLocaleString('vi-VN'));
+
+    const avgBal = Number(data.avg_balance || 0);
+    setStat('avgBalance', fmtVndCompact(avgBal));
+    setStat('balLevel', avgBal >= 100000000 ? 'lớn' : 'vừa phải');
+
+    const avgEng = Number(data.avg_engagement || 0);
+    setStat('avgEngagement', avgEng.toFixed(1));
+    setStat('engLevel', avgEng >= 70 ? 'Cao' : avgEng >= 40 ? 'Trung bình' : 'Thấp');
+
+    const ageOrder = ['<25', '25-35', '36-45', '46-55', '56+'];
+    const engOrder = ['0-25', '26-50', '51-75', '76-100'];
+    const balOrder = ['<50', '50-100', '100-200', '>200'];
+
+    const ageBins = data.age_bins || {};
+    const engBins = data.engagement_bins || {};
+    const balBins = data.balance_bins_m || {};
+
+    barChart('cluster-age-chart', ageOrder, ageOrder.map(k => Number(ageBins[k] || 0)), 'Số KH');
+    barChart('cluster-engagement-chart', engOrder, engOrder.map(k => Number(engBins[k] || 0)), 'Số KH');
+    barChart('cluster-balance-chart', balOrder, balOrder.map(k => Number(balBins[k] || 0)), 'Số KH');
+
     ['cluster-age-chart', 'cluster-engagement-chart', 'cluster-balance-chart'].forEach(id => {
       const cv = document.getElementById(id);
       if (cv && cv._chart) {
         cv._chart.options.scales.y.ticks.callback = function(value) { return value; };
         cv._chart.data.datasets.forEach(ds => {
-            ds.barPercentage = 1.0;
-            ds.categoryPercentage = 0.95;
-            ds.backgroundColor = 'rgba(59, 130, 246, 0.85)';
-            ds.hoverBackgroundColor = 'rgba(29, 78, 216, 1)';
+          ds.barPercentage = 1.0;
+          ds.categoryPercentage = 0.95;
+          ds.backgroundColor = 'rgba(59, 130, 246, 0.85)';
+          ds.hoverBackgroundColor = 'rgba(29, 78, 216, 1)';
         });
         cv._chart.update();
       }
     });
+  } catch (e) {
+    return;
   }
 }
 

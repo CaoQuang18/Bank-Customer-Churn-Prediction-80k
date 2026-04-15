@@ -780,6 +780,29 @@ td[style*="text-align:center"], th[style*="text-align:center"] { text-align: cen
 .cluster-uu-dai { font-size: 12.5px; color: var(--gray-500); }
 .cluster-uu-dai li { margin-left: 16px; margin-bottom: 4px; line-height: 1.5; }
 
+.cluster-details { margin-top: 10px; }
+.cluster-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-700);
+  list-style: none;
+  user-select: none;
+}
+.cluster-details summary::-webkit-details-marker { display: none; }
+.cluster-details summary::before { content: '▸'; color: var(--gray-400); margin-right: 6px; }
+.cluster-details[open] summary::before { content: '▾'; }
+.cluster-detail-box {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--gray-700);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .cluster-filter select, .filter-select {
   padding: 6px 12px;
   border: 1px solid var(--border);

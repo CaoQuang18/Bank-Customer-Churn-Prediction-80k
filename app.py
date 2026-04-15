@@ -381,6 +381,90 @@ def api_clusters():
     )
 
 
+@app.route("/api/cluster_hist")
+def api_cluster_hist():
+    df = artifacts.get("clustered_df")
+    if df is None or df.empty:
+        return jsonify({"error": "clustered_df not loaded"}), 500
+
+    try:
+        cluster_id = int(request.args.get("cluster", ""))
+    except Exception:
+        return jsonify({"error": "missing_or_invalid_cluster"}), 400
+
+    segment = request.args.get("segment")
+    active = request.args.get("active")
+
+    subset = df[df["cluster"] == cluster_id]
+    if segment and segment != "all":
+        subset = subset[subset["customer_segment"] == segment]
+    if active and active != "all":
+        try:
+            active_int = int(active)
+            subset = subset[subset["active_member"] == active_int]
+        except Exception:
+            pass
+
+    age = pd.to_numeric(subset.get("age"), errors="coerce").fillna(0)
+    eng = pd.to_numeric(subset.get("engagement_score"), errors="coerce").fillna(0)
+    bal_m = (pd.to_numeric(subset.get("balance"), errors="coerce").fillna(0) / 1e6)
+    bal_raw = pd.to_numeric(subset.get("balance"), errors="coerce").fillna(0)
+    act = pd.to_numeric(subset.get("active_member"), errors="coerce").fillna(0).astype(int)
+
+    age_bins = {
+        "<25": int((age < 25).sum()),
+        "25-35": int(((age >= 25) & (age <= 35)).sum()),
+        "36-45": int(((age >= 36) & (age <= 45)).sum()),
+        "46-55": int(((age >= 46) & (age <= 55)).sum()),
+        "56+": int((age >= 56).sum()),
+    }
+    eng_bins = {
+        "0-25": int((eng <= 25).sum()),
+        "26-50": int(((eng >= 26) & (eng <= 50)).sum()),
+        "51-75": int(((eng >= 51) & (eng <= 75)).sum()),
+        "76-100": int((eng >= 76).sum()),
+    }
+    bal_bins = {
+        "<50": int((bal_m < 50).sum()),
+        "50-100": int(((bal_m >= 50) & (bal_m <= 100)).sum()),
+        "100-200": int(((bal_m > 100) & (bal_m <= 200)).sum()),
+        ">200": int((bal_m > 200).sum()),
+    }
+
+    n = int(len(subset))
+    active_count = int((act == 1).sum())
+    inactive_count = int((act == 0).sum())
+    active_rate_pct = round((active_count / n) * 100.0, 1) if n else 0.0
+    inactive_rate_pct = round((inactive_count / n) * 100.0, 1) if n else 0.0
+
+    seg_val = subset.get("customer_segment")
+    top_segment = str(seg_val.value_counts().idxmax()) if seg_val is not None and len(seg_val) else ""
+    dig_val = subset.get("digital_behavior")
+    top_channel = str(dig_val.value_counts().idxmax()) if dig_val is not None and len(dig_val) else ""
+    loy_val = subset.get("loyalty_level")
+    top_loyalty = str(loy_val.value_counts().idxmax()) if loy_val is not None and len(loy_val) else ""
+
+    return jsonify(
+        {
+            "cluster": cluster_id,
+            "n": n,
+            "age_bins": age_bins,
+            "engagement_bins": eng_bins,
+            "balance_bins_m": bal_bins,
+            "balance_unit": "million_vnd",
+            "active_count": active_count,
+            "inactive_count": inactive_count,
+            "active_rate_pct": active_rate_pct,
+            "inactive_rate_pct": inactive_rate_pct,
+            "avg_balance": float(bal_raw.mean()) if n else 0.0,
+            "avg_engagement": float(eng.mean()) if n else 0.0,
+            "top_segment": top_segment,
+            "top_channel": top_channel,
+            "top_loyalty": top_loyalty,
+        }
+    )
+
+
 @app.route("/api/predict", methods=["POST"])
 def api_predict():
     data = request.json
