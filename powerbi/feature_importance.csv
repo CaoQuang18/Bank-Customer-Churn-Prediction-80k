@@ -1,18 +1,18 @@
 feature,importance
-num__monthly_ir,0.4505
-num__risk_score,0.3303
-num__balance,0.2447
-num__nums_service,0.0987
-num__tenure_ye,0.0852
-num__engagement_score,0.0793
-cat__customer_segment_Priority,0.0694
-cat__customer_segment_Mass,0.061
-num__credit_sco,0.0574
-num__active_member,0.0412
-cat__customer_segment_Emerging,0.0408
-num__age,0.0305
-num__nums_card,0.0213
-cat__digital_behavior_offline,0.0123
-cat__gender_male,0.012
-num__loyalty_level,0.0118
-num__married,0.01
+Thu nhập hàng tháng,45.05%
+Điểm rủi ro tín dụng,33.03%
+Số dư tài khoản,24.47%
+Số lượng dịch vụ,9.87%
+Thâm niên (năm),8.52%
+Điểm tương tác,7.93%
+Phân khúc: Ưu tiên,6.94%
+Phân khúc: Phổ thông,6.10%
+Điểm tín dụng,5.74%
+Trạng thái hoạt động,4.12%
+Phân khúc: Tiềm năng,4.08%
+Độ tuổi,3.05%
+Số lượng thẻ,2.13%
+Giao dịch: Offline,1.23%
+Giới tính: Nam,1.20%
+Hạng thành viên,1.18%
+Tình trạng hôn nhân,1.00%

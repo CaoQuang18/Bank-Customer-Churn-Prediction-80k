@@ -1,5 +1,5 @@
-cluster,balance_mean,engagement_mean,churn_rate,age_mean,risk_mean,count,balance_rank,risk_rank,engagement_rank,cluster_name
-0,284084207.75634295,33.0352872557597,0.0013123359580052493,53.91571886847478,0.17019877515310586,6858,1.0,4.0,2.0,Khách hàng VIP - Trụ cột Tài sản
-1,44735053.774877116,69.18350628072092,0.05406881485527035,47.93539049699618,0.17396900054614967,18310,3.0,3.0,1.0,Khách hàng Tích cực - Tiềm năng Cross-sell
-2,33936772.612750456,18.646237915090374,0.264873196020737,40.06120218579235,0.31747932744850776,35685,4.0,1.0,4.0,Nhóm Rủi ro Cao - Cần Cứu vãn Khẩn
-3,47854680.611427374,19.811719851673892,0.20624640935916855,66.51245625946623,0.3059987465399279,19147,2.0,2.0,3.0,Nhóm Cao tuổi - Rủi ro Tiềm ẩn
+cluster,balance_mean,engagement_mean,churn_rate,age_mean,risk_mean,count,cluster_name
+0,284.08M,33.04,0.13%,53.9,17.02%,6858,Khách hàng VIP - Trụ cột Tài sản
+1,44.74M,69.18,5.41%,47.9,17.40%,18310,Khách hàng Tích cực - Tiềm năng Cross-sell
+2,33.94M,18.65,26.49%,40.1,31.75%,35685,Nhóm Rủi ro Cao - Cần Cứu vãn Khẩn
+3,47.85M,19.81,20.62%,66.5,30.60%,19147,Nhóm Cao tuổi - Rủi ro Tiềm ẩn
