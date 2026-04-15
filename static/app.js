@@ -85,6 +85,10 @@ function fmtVndCompactFromMillion(vMillion) {
 
 function wrapTickLabel(label) {
   const s = String(label ?? '');
+  if (s.includes('–')) {
+    const parts = s.split('–').map(x => x.trim()).filter(Boolean);
+    if (parts.length === 2) return [`${parts[0]}–`, parts[1]];
+  }
   if (s.length > 16 && s.includes(' ')) return s.split(' ');
   return s;
 }
@@ -124,6 +128,7 @@ function barChart(id, labels, data, label = 'Tỷ lệ rời bỏ (%)') {
             maxTicksLimit: dense ? 8 : undefined,
             maxRotation: 0,
             minRotation: 0,
+            font: { size: 10 },
             callback: function(value) {
               return wrapTickLabel(this.getLabelForValue(value));
             }
@@ -2694,7 +2699,8 @@ async function renderClusterHistograms(clusterId, filterSegment = 'all', filterA
   const qs = new URLSearchParams({
     cluster: String(clusterId),
     segment: String(filterSegment || 'all'),
-    active: String(filterActive || 'all')
+    active: String(filterActive || 'all'),
+    bins: 'quantile'
   }).toString();
 
   try {
@@ -2734,22 +2740,39 @@ async function renderClusterHistograms(clusterId, filterSegment = 'all', filterA
     setStat('avgEngagement', avgEng.toFixed(1));
     setStat('engLevel', avgEng >= 70 ? 'Cao' : avgEng >= 40 ? 'Trung bình' : 'Thấp');
 
-    const ageOrder = ['<25', '25-35', '36-45', '46-55', '56+'];
-    const engOrder = ['0-25', '26-50', '51-75', '76-100'];
-    const balOrder = ['<50', '50-100', '100-200', '>200'];
+    const ageHist = data.age_hist || { labels: [], counts: [] };
+    const engHist = data.engagement_hist || { labels: [], counts: [] };
+    const balHist = data.balance_hist_m || { labels: [], counts: [] };
 
-    const ageBins = data.age_bins || {};
-    const engBins = data.engagement_bins || {};
-    const balBins = data.balance_bins_m || {};
+    barChart('cluster-age-chart', ageHist.labels || [], (ageHist.counts || []).map(Number), 'Số KH');
+    barChart('cluster-engagement-chart', engHist.labels || [], (engHist.counts || []).map(Number), 'Số KH');
+    barChart('cluster-balance-chart', balHist.labels || [], (balHist.counts || []).map(Number), 'Số KH');
 
-    barChart('cluster-age-chart', ageOrder, ageOrder.map(k => Number(ageBins[k] || 0)), 'Số KH');
-    barChart('cluster-engagement-chart', engOrder, engOrder.map(k => Number(engBins[k] || 0)), 'Số KH');
-    barChart('cluster-balance-chart', balOrder, balOrder.map(k => Number(balBins[k] || 0)), 'Số KH');
+    const noteCommon = `N = ${n.toLocaleString('vi-VN')} • Chia khoảng theo tứ phân vị (4 nhóm) • Dữ liệu: toàn bộ khách trong cụm`;
+    const nAge = document.getElementById('cluster-age-note');
+    if (nAge) nAge.textContent = `${noteCommon} • Trục X: khoảng tuổi (năm)`;
+    const nEng = document.getElementById('cluster-engagement-note');
+    if (nEng) nEng.textContent = `${noteCommon} • Trục X: khoảng điểm (0–100)`;
+    const nBal = document.getElementById('cluster-balance-note');
+    if (nBal) nBal.textContent = `${noteCommon} • Trục X: khoảng số dư (Triệu VNĐ)`;
 
     ['cluster-age-chart', 'cluster-engagement-chart', 'cluster-balance-chart'].forEach(id => {
       const cv = document.getElementById(id);
       if (cv && cv._chart) {
-        cv._chart.options.scales.y.ticks.callback = function(value) { return value; };
+        if (cv._chart.options?.scales?.y?.ticks) {
+          cv._chart.options.scales.y.ticks.callback = function(value) { return Number(value).toLocaleString('vi-VN'); };
+        }
+        if (cv._chart.options?.scales?.y) {
+          cv._chart.options.scales.y.title = { display: true, text: 'Số KH' };
+        }
+        if (cv._chart.options?.scales?.x) {
+          const xTitle = id === 'cluster-age-chart'
+            ? 'Khoảng tuổi (năm)'
+            : id === 'cluster-engagement-chart'
+              ? 'Khoảng điểm (0–100)'
+              : 'Khoảng số dư (Triệu VNĐ)';
+          cv._chart.options.scales.x.title = { display: true, text: xTitle };
+        }
         cv._chart.data.datasets.forEach(ds => {
           ds.barPercentage = 1.0;
           ds.categoryPercentage = 0.95;

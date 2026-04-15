@@ -803,6 +803,13 @@ td[style*="text-align:center"], th[style*="text-align:center"] { text-align: cen
   line-height: 1.55;
 }
 
+.chart-note {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--gray-500);
+  line-height: 1.45;
+}
+
 .cluster-filter select, .filter-select {
   padding: 6px 12px;
   border: 1px solid var(--border);
@@ -1139,4 +1146,3 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; 
 .cluster-card.info    { border-top-color: var(--blue-500); }
 .cluster-card.purple  { border-top-color: var(--purple-500); }
 .cluster-card.teal    { border-top-color: var(--teal-600); }
-

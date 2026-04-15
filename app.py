@@ -411,25 +411,71 @@ def api_cluster_hist():
     bal_raw = pd.to_numeric(subset.get("balance"), errors="coerce").fillna(0)
     act = pd.to_numeric(subset.get("active_member"), errors="coerce").fillna(0).astype(int)
 
-    age_bins = {
-        "<25": int((age < 25).sum()),
-        "25-35": int(((age >= 25) & (age <= 35)).sum()),
-        "36-45": int(((age >= 36) & (age <= 45)).sum()),
-        "46-55": int(((age >= 46) & (age <= 55)).sum()),
-        "56+": int((age >= 56).sum()),
-    }
-    eng_bins = {
-        "0-25": int((eng <= 25).sum()),
-        "26-50": int(((eng >= 26) & (eng <= 50)).sum()),
-        "51-75": int(((eng >= 51) & (eng <= 75)).sum()),
-        "76-100": int((eng >= 76).sum()),
-    }
-    bal_bins = {
-        "<50": int((bal_m < 50).sum()),
-        "50-100": int(((bal_m >= 50) & (bal_m <= 100)).sum()),
-        "100-200": int(((bal_m > 100) & (bal_m <= 200)).sum()),
-        ">200": int((bal_m > 200).sum()),
-    }
+    bins_mode = str(request.args.get("bins", "quantile")).lower()
+    if bins_mode not in ("quantile", "fixed"):
+        bins_mode = "quantile"
+
+    def _quantile_hist(series: pd.Series, q: int = 4, decimals: int = 0):
+        s = pd.to_numeric(series, errors="coerce").dropna()
+        if s.empty:
+            return {"labels": [], "counts": [], "edges": []}
+        def fmt_edge(x: float):
+            if decimals <= 0:
+                try:
+                    return int(round(float(x)))
+                except Exception:
+                    return int(x)
+            return round(float(x), decimals)
+
+        qs = np.linspace(0, 1, q + 1)
+        edges = [float(x) for x in s.quantile(qs, interpolation="linear").tolist()]
+        edges = sorted(set(edges))
+        if len(edges) < 2:
+            v = fmt_edge(s.iloc[0])
+            return {"labels": [f"{v}"], "counts": [int(len(s))], "edges": [v]}
+        if len(edges) == 2:
+            a = fmt_edge(edges[0])
+            b = fmt_edge(edges[1])
+            return {"labels": [f"{a}–{b}"], "counts": [int(len(s))], "edges": [a, b]}
+
+        cats = pd.cut(s, bins=edges, include_lowest=True, right=True, duplicates="drop")
+        vc = cats.value_counts().sort_index()
+        labels = []
+        counts = []
+        for interval, cnt in vc.items():
+            lo = fmt_edge(interval.left)
+            hi = fmt_edge(interval.right)
+            labels.append(f"{lo}–{hi}")
+            counts.append(int(cnt))
+        return {"labels": labels, "counts": counts, "edges": edges}
+
+    if bins_mode == "fixed":
+        age_bins = {
+            "<25": int((age < 25).sum()),
+            "25-35": int(((age >= 25) & (age <= 35)).sum()),
+            "36-45": int(((age >= 36) & (age <= 45)).sum()),
+            "46-55": int(((age >= 46) & (age <= 55)).sum()),
+            "56+": int((age >= 56).sum()),
+        }
+        eng_bins = {
+            "0-25": int((eng <= 25).sum()),
+            "26-50": int(((eng >= 26) & (eng <= 50)).sum()),
+            "51-75": int(((eng >= 51) & (eng <= 75)).sum()),
+            "76-100": int((eng >= 76).sum()),
+        }
+        bal_bins = {
+            "<50": int((bal_m < 50).sum()),
+            "50-100": int(((bal_m >= 50) & (bal_m <= 100)).sum()),
+            "100-200": int(((bal_m > 100) & (bal_m <= 200)).sum()),
+            ">200": int((bal_m > 200).sum()),
+        }
+        age_hist = {"labels": list(age_bins.keys()), "counts": list(age_bins.values())}
+        eng_hist = {"labels": list(eng_bins.keys()), "counts": list(eng_bins.values())}
+        bal_hist = {"labels": list(bal_bins.keys()), "counts": list(bal_bins.values())}
+    else:
+        age_hist = _quantile_hist(age, q=4, decimals=0)
+        eng_hist = _quantile_hist(eng, q=4, decimals=0)
+        bal_hist = _quantile_hist(bal_m, q=4, decimals=0)
 
     n = int(len(subset))
     active_count = int((act == 1).sum())
@@ -448,9 +494,10 @@ def api_cluster_hist():
         {
             "cluster": cluster_id,
             "n": n,
-            "age_bins": age_bins,
-            "engagement_bins": eng_bins,
-            "balance_bins_m": bal_bins,
+            "bins_mode": bins_mode,
+            "age_hist": {"labels": age_hist.get("labels", []), "counts": age_hist.get("counts", [])},
+            "engagement_hist": {"labels": eng_hist.get("labels", []), "counts": eng_hist.get("counts", [])},
+            "balance_hist_m": {"labels": bal_hist.get("labels", []), "counts": bal_hist.get("counts", [])},
             "balance_unit": "million_vnd",
             "active_count": active_count,
             "inactive_count": inactive_count,
